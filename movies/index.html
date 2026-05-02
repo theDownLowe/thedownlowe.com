@@ -51,12 +51,26 @@
       <div class="locked-msg">Sign in to suggest and vote on movies</div>
     </div>
 
-    <div class="tab-row">
-      <button class="tab active" onclick="setSort('score', this)">Top rated</button>
-      <button class="tab" onclick="setSort('new', this)">Newest</button>
+    <!-- Main tabs: Rankings / Queue -->
+    <div class="main-tab-row">
+      <button class="main-tab active" id="tab-rankings" onclick="switchTab('rankings')">Rankings</button>
+      <button class="main-tab" id="tab-queue" onclick="switchTab('queue')">Queue</button>
     </div>
 
-    <div class="sort-label" id="sortLabel">sorted by score</div>
+    <!-- Sort controls (Rankings only) -->
+    <div id="rankingsControls">
+      <div class="tab-row">
+        <button class="tab active" onclick="setSort('score', this)">Top rated</button>
+        <button class="tab" onclick="setSort('new', this)">Newest</button>
+      </div>
+      <div class="sort-label" id="sortLabel">sorted by score</div>
+    </div>
+
+    <!-- Queue hint (Queue only, hidden by default) -->
+    <div id="queueControls" style="display:none">
+      <div class="queue-hint">Drag cards to reorder · changes apply to everyone</div>
+    </div>
+
     <div class="movie-list" id="movieList">
       <div class="loading">Loading movies...</div>
     </div>
