@@ -227,6 +227,7 @@ body {
 
 /* ── Movie card ── */
 .movie-card {
+  position: relative;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -236,6 +237,43 @@ body {
 .movie-card:hover  { border-color: #aaa; }
 .movie-card.has-imdb { border-color: #b0ada8; }
 .movie-card.has-imdb:hover { border-color: #777; }
+
+.delete-btn-corner {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.1s, background 0.1s;
+  z-index: 1;
+}
+.delete-btn-corner:hover {
+  color: var(--red);
+  background: #fdf0f0;
+}
+
+.seen-vote-btn.active {
+  background: #e6f5ef;
+  border-color: #a3d9c3;
+  color: var(--green);
+  font-size: 16px;
+}
+
+.seen-names-row {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
 
 /* ── Card main row ── */
 .card-main {
@@ -290,18 +328,6 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 .score.neg  { color: var(--red); }
 .score.zero { color: var(--muted); }
 
-.delete-btn {
-  width: 38px; height: 38px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: transparent;
-  cursor: pointer; font-size: 13px; color: var(--muted);
-  display: flex; align-items: center; justify-content: center;
-  transition: background 0.1s, color 0.1s, border-color 0.1s;
-  margin-left: 4px;
-}
-.delete-btn:hover { background: #fdf0f0; border-color: #f5b8b8; color: var(--red); }
-
 /* ── Card footer ── */
 .card-footer {
   border-top: 1px solid #f0ece8;
@@ -322,18 +348,6 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 .voter-names.down { color: var(--red); }
 
 /* Seen row */
-.seen-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.seen-btn {
-  font-size: 0.78rem;
-  padding: 4px 10px;
-  border-radius: 20px;
-  border: 1px solid var(--border);
-  background: transparent;
-  cursor: pointer;
-  color: var(--muted);
-  transition: background 0.1s, border-color 0.1s, color 0.1s;
-  white-space: nowrap;
-}
 .seen-btn:hover  { background: #f0ece8; border-color: #bbb; }
 .seen-btn.active { background: #e6f5ef; border-color: #a3d9c3; color: var(--green); }
 .seen-names { font-size: 0.75rem; color: var(--muted); }

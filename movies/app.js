@@ -544,8 +544,9 @@ function render() {
       ? `<div class="comments-section" id="comments-section-${m.movieId}"><div class="comments-loading">Loading...</div></div>`
       : "";
 
-    return `
+      return `
       <div class="movie-card${hasImdb ? " has-imdb" : ""}">
+        <button class="delete-btn-corner" onclick="deleteMovie('${m.movieId}')" title="Remove">✕</button>
         <div class="card-main">
           <span class="rank">${i + 1}</span>
           ${poster}
@@ -557,12 +558,12 @@ function render() {
             <button class="vote-btn up${hasVotedUp ? " active" : ""}" onclick="vote('${m.movieId}', 1)" title="Thumbs up">▲</button>
             <span class="score ${cls}">${s > 0 ? "+" : ""}${s}</span>
             <button class="vote-btn down${hasVotedDown ? " active" : ""}" onclick="vote('${m.movieId}', -1)" title="Thumbs down">▼</button>
-            <button class="delete-btn" onclick="deleteMovie('${m.movieId}')" title="Remove">✕</button>
+            <button class="vote-btn seen-vote-btn${hasSeen ? " active" : ""}" onclick="toggleSeen('${m.movieId}')" title="${hasSeen ? "Unmark as seen" : "Mark as seen"}">👁</button>
           </div>
         </div>
         <div class="card-footer">
           ${voterRow}
-          ${seenRow}
+          ${seenNames.length ? `<div class="seen-names-row"><span class="seen-names">seen by ${seenNames.join(", ")}</span></div>` : ""}
           <div class="comments-toggle-row">${commentsToggle}</div>
         </div>
         ${commentsSection}
