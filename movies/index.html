@@ -13,10 +13,16 @@
       <p class="logo">Laylee's Lounge Movie Picker</p>
     </header>
 
-    <div class="suggest-bar">
-      <input type="text" id="movieInput" placeholder="Suggest a movie..." maxlength="80" />
-      <input type="text" id="nameInput" placeholder="Your name (optional)" maxlength="30" />
-      <button id="addBtn" onclick="addMovie()">+ Add</button>
+    <div class="suggest-section">
+      <div class="suggest-bar">
+        <div class="search-wrap">
+          <input type="text" id="movieInput" placeholder="Search for a movie..." maxlength="80" autocomplete="off" />
+          <div class="dropdown" id="dropdown"></div>
+        </div>
+        <input type="text" id="nameInput" placeholder="Your name (optional)" maxlength="30" />
+        <button id="addBtn" onclick="addMovie()">+ Add</button>
+      </div>
+      <div class="preview" id="preview"></div>
     </div>
 
     <div class="tab-row">
