@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Laylee's Movie Lounge</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 </head>
 <body>
 
@@ -60,10 +64,10 @@
     <!-- Sort controls (Rankings only) -->
     <div id="rankingsControls">
       <div class="tab-row">
-        <button class="tab active" onclick="setSort('score', this)">Top rated</button>
+        <button class="tab active" onclick="setSort('score', this)">Top voted</button>
         <button class="tab" onclick="setSort('new', this)">Newest</button>
       </div>
-      <div class="sort-label" id="sortLabel">sorted by score</div>
+      <div class="sort-label" id="sortLabel">sorted by vote score</div>
     </div>
 
     <!-- Queue hint (Queue only, hidden by default) -->
