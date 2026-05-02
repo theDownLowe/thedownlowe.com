@@ -83,7 +83,10 @@ document.getElementById("movieInput").addEventListener("keydown", (e) => {
 
 document.addEventListener("click", (e) => {
   if (!e.target.closest(".search-wrap")) closeDropdown();
-  if (!e.target.closest(".auth-modal") && !e.target.closest(".auth-btn")) closeAuthModal();
+  const path      = e.composedPath();
+  const inModal   = path.some(el => el.classList?.contains("auth-modal"));
+  const inAuthBtn = path.some(el => el.classList?.contains("auth-btn"));
+  if (!inModal && !inAuthBtn) closeAuthModal();
 });
 
 // ── Dropdown ──────────────────────────────────────────────────────────────────
