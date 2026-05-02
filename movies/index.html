@@ -19,8 +19,11 @@
       <input type="password" id="authPassword" placeholder="Password" autocomplete="off" />
       <div class="auth-error" id="authError"></div>
       <button class="auth-submit" id="authSubmitBtn" onclick="submitAuth()">Sign in</button>
-      <p class="auth-toggle" id="authToggleText">
+      <p class="auth-toggle" id="toggleToRegister">
         No account? <a href="#" onclick="setAuthMode('register'); return false;">Sign up</a>
+      </p>
+      <p class="auth-toggle" id="toggleToLogin" style="display:none">
+        Already have an account? <a href="#" onclick="setAuthMode('login'); return false;">Sign in</a>
       </p>
     </div>
   </div>

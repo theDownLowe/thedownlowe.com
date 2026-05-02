@@ -168,13 +168,12 @@ function closeAuthModal() {
 function setAuthMode(mode) {
   authModalMode = mode;
   const isRegister = mode === "register";
-  document.getElementById("authModalTitle").textContent = isRegister ? "Create account" : "Sign in";
-  document.getElementById("authSubmitBtn").textContent  = isRegister ? "Create account" : "Sign in";
-  document.getElementById("authWarning").style.display  = isRegister ? "block" : "none";
-  document.getElementById("authToggleText").innerHTML   = isRegister
-    ? 'Already have an account? <a href="#" onclick="setAuthMode(\'login\'); return false;">Sign in</a>'
-    : 'No account? <a href="#" onclick="setAuthMode(\'register\'); return false;">Sign up</a>';
-  document.getElementById("authError").textContent = "";
+  document.getElementById("authModalTitle").textContent     = isRegister ? "Create account" : "Sign in";
+  document.getElementById("authSubmitBtn").textContent      = isRegister ? "Create account" : "Sign in";
+  document.getElementById("authWarning").style.display      = isRegister ? "block" : "none";
+  document.getElementById("toggleToRegister").style.display = isRegister ? "none"  : "block";
+  document.getElementById("toggleToLogin").style.display    = isRegister ? "block" : "none";
+  document.getElementById("authError").textContent          = "";
 }
 
 async function submitAuth() {
