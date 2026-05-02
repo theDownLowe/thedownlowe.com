@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Down Lowe</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+
+    <header class="header">
+      <div class="logo">theDownLowe</div>
+      <p class="tagline">Laylee's lounge Movie Picker</p>
+    </header>
+
+    <div class="suggest-bar">
+      <input type="text" id="movieInput" placeholder="Suggest a movie..." maxlength="80" />
+      <input type="text" id="nameInput" placeholder="Your name (optional)" maxlength="30" />
+      <button id="addBtn" onclick="addMovie()">+ Add</button>
+    </div>
+
+    <div class="tab-row">
+      <button class="tab active" onclick="setSort('score', this)">Top rated</button>
+      <button class="tab" onclick="setSort('new', this)">Newest</button>
+    </div>
+
+    <div class="sort-label" id="sortLabel">sorted by score</div>
+    <div class="movie-list" id="movieList">
+      <div class="loading">Loading movies...</div>
+    </div>
+
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
