@@ -385,7 +385,8 @@ async function fetchComments(movieId) {
   try {
     const res = await fetch(`${API}/comments/${movieId}`);
     cardComments[movieId] = await res.json();
-    renderCommentsSection(movieId);
+    refreshCommentCount(movieId);
+    if (expandedCards.has(movieId)) renderCommentsSection(movieId);
   } catch (e) { console.error("Failed to load comments:", e); }
 }
 function renderCommentsSection(movieId) {
@@ -469,8 +470,9 @@ async function deleteComment(movieId, commentId) {
   } catch (e) { alert("Failed to delete comment."); }
 }
 function refreshCommentCount(movieId) {
-  document.querySelectorAll(`[id="comment-count-${movieId}"]`).forEach(el => {
-    if (cardComments[movieId]) el.textContent = cardComments[movieId].length;
+  const count = cardComments[movieId]?.length ?? 0;
+  document.querySelectorAll(`#comment-count-${movieId}`).forEach(el => {
+    el.textContent = `${count} `;
   });
 }
 
@@ -538,9 +540,9 @@ function buildCard(m, rank, mode) {
   const countStr = count !== undefined ? `${count} ` : "";
   const expanded = expandedCards.has(m.movieId);
   const commentsToggle = `
-    <button class="comments-toggle-btn" onclick="toggleComments('${m.movieId}')">
-      💬 <span id="comment-count-${m.movieId}">${countStr}</span>comment${count !== 1 ? "s" : ""} ${expanded ? "▲" : "▼"}
-    </button>`;
+  <button class="comments-toggle-btn" data-movie-id="${m.movieId}" onclick="toggleComments('${m.movieId}')">
+    💬 <span id="comment-count-${m.movieId}">${countStr}</span>comment${count !== 1 ? "s" : ""} ${expanded ? "▲" : "▼"}
+  </button>`;
   const commentsSection = expanded
     ? `<div class="comments-section" id="comments-section-${m.movieId}"><div class="comments-loading">Loading...</div></div>`
     : "";
@@ -692,6 +694,9 @@ async function loadQueue() {
 
 async function loadAll() {
   await Promise.all([loadMovies(), loadQueue()]);
+  movies.forEach(m => {
+    if (cardComments[m.movieId] === undefined) fetchComments(m.movieId);
+  });
 }
 
 function startPolling() {

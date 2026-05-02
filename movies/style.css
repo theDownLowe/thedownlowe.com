@@ -310,7 +310,10 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 .voter-names.up   { color: var(--green); }
 .voter-names.down { color: var(--red); }
 .seen-names-row { font-size: 0.75rem; color: var(--muted); }
-.comments-toggle-row {}
+.comments-toggle-row {
+  display: flex;
+  justify-content: flex-end;
+}
 .comments-toggle-btn {
   font-size: 0.78rem; padding: 4px 0; background: transparent; border: none;
   cursor: pointer; color: var(--muted); transition: color 0.1s;
