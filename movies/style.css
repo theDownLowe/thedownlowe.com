@@ -4,9 +4,9 @@
   --green:      #1D9E75;
   --green-dark: #0F6E56;
   --red:        #E24B4A;
-  --bg:         #f9f9f8;
+  --bg:         #dedad5;
   --surface:    #ffffff;
-  --border:     #e5e5e3;
+  --border:     #d0cdc8;
   --text:       #1a1a1a;
   --muted:      #888;
   --radius:     10px;
@@ -166,7 +166,15 @@ body {
   padding: 10px 12px;
   transition: border-color 0.15s;
 }
-.movie-card:hover { border-color: #ccc; }
+.movie-card:hover { border-color: #aaa; }
+
+/* Darker border for IMDB-linked cards */
+.movie-card.has-imdb {
+  border-color: #b0ada8;
+}
+.movie-card.has-imdb:hover {
+  border-color: #888;
+}
 
 .rank { font-size: 0.85rem; color: var(--muted); min-width: 22px; text-align: center; font-weight: 500; flex-shrink: 0; }
 
@@ -194,7 +202,32 @@ body {
 }
 
 .movie-info { flex: 1; min-width: 0; }
-.movie-title { font-size: 0.95rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.movie-title {
+  font-size: 0.95rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+/* IMDB link styles */
+a.imdb-link {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+  text-decoration: none;
+}
+a.imdb-link:hover {
+  color: var(--green);
+  text-decoration: underline;
+}
+
 .movie-meta  { font-size: 0.75rem; color: var(--muted); margin-top: 3px; display: flex; gap: 8px; flex-wrap: wrap; }
 .imdb-badge  { color: #f5c518; font-weight: 600; }
 
@@ -211,7 +244,7 @@ body {
   transition: background 0.1s, border-color 0.1s;
   color: var(--muted);
 }
-.vote-btn:hover { background: #f3f3f1; border-color: #ccc; }
+.vote-btn:hover { background: #f3f3f1; border-color: #aaa; }
 .vote-btn.up.active   { background: #e6f5ef; border-color: #a3d9c3; color: var(--green); }
 .vote-btn.down.active { background: #fdf0f0; border-color: #f5b8b8; color: var(--red); }
 

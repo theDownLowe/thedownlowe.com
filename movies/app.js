@@ -9,7 +9,7 @@ const CACHE_DETAIL_TTL = 1000 * 60 * 60 * 24 * 7; // movie details:  7 days
 function cacheSet(key, data, ttl) {
   try {
     localStorage.setItem("omdb_" + key, JSON.stringify({ data, expires: Date.now() + ttl }));
-  } catch (e) {} // ignore if localStorage is full
+  } catch (e) {}
 }
 
 function cacheGet(key) {
@@ -29,10 +29,10 @@ function getVoterId() {
 }
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let movies   = [];
-let myVotes  = JSON.parse(localStorage.getItem("downlowe_votes") || "{}");
-let sortMode = "score";
-let selected = null; // the OMDB result the user picked from the dropdown
+let movies      = [];
+let myVotes     = JSON.parse(localStorage.getItem("downlowe_votes") || "{}");
+let sortMode    = "score";
+let selected    = null;
 let searchTimer = null;
 const pendingDeletes = new Set();
 const pendingVotes   = new Map();
@@ -41,25 +41,34 @@ function saveVotes() { localStorage.setItem("downlowe_votes", JSON.stringify(myV
 
 // ── OMDB search ───────────────────────────────────────────────────────────────
 async function searchOMDB(query) {
-  const res  = await fetch(`${OMDB_URL}?s=${encodeURIComponent(query)}&type=movie&apikey=${OMDB_KEY}`);
-  const data = await res.json();
-  return data.Search || [];
+  const key    = "search_" + query.toLowerCase();
+  const cached = cacheGet(key);
+  if (cached) return cached;
+
+  const res     = await fetch(`${OMDB_URL}?s=${encodeURIComponent(query)}&type=movie&apikey=${OMDB_KEY}`);
+  const data    = await res.json();
+  const results = data.Search || [];
+  if (results.length) cacheSet(key, results, CACHE_SEARCH_TTL);
+  return results;
 }
 
 async function fetchOMDBDetails(imdbId) {
-  const res  = await fetch(`${OMDB_URL}?i=${imdbId}&apikey=${OMDB_KEY}`);
-  return await res.json();
+  const key    = "detail_" + imdbId;
+  const cached = cacheGet(key);
+  if (cached) return cached;
+
+  const res     = await fetch(`${OMDB_URL}?i=${imdbId}&apikey=${OMDB_KEY}`);
+  const details = await res.json();
+  cacheSet(key, details, CACHE_DETAIL_TTL);
+  return details;
 }
 
 // ── Search input handler ──────────────────────────────────────────────────────
 document.getElementById("movieInput").addEventListener("input", (e) => {
   const q = e.target.value.trim();
   clearTimeout(searchTimer);
-
-  if (selected) clearSelected(); // clear selection if user types again
-
+  if (selected) clearSelected();
   if (q.length < 2) { closeDropdown(); return; }
-
   showSearching();
   searchTimer = setTimeout(async () => {
     const results = await searchOMDB(q);
@@ -68,11 +77,10 @@ document.getElementById("movieInput").addEventListener("input", (e) => {
 });
 
 document.getElementById("movieInput").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") { closeDropdown(); addMovie(); }
+  if (e.key === "Enter")  { closeDropdown(); addMovie(); }
   if (e.key === "Escape") closeDropdown();
 });
 
-// Close dropdown when clicking outside
 document.addEventListener("click", (e) => {
   if (!e.target.closest(".search-wrap")) closeDropdown();
 });
@@ -87,7 +95,6 @@ function showSearching() {
 function renderDropdown(results) {
   const dd = document.getElementById("dropdown");
   if (!results.length) { dd.innerHTML = '<div class="dropdown-searching">No results found</div>'; return; }
-
   dd.innerHTML = results.slice(0, 6).map(r => `
     <div class="dropdown-item" onclick="selectMovie('${r.imdbID}', '${escHtml(r.Title)}')">
       <img src="${r.Poster !== "N/A" ? r.Poster : ""}" alt="" onerror="this.style.display='none'" />
@@ -110,7 +117,6 @@ async function selectMovie(imdbId, title) {
   closeDropdown();
   document.getElementById("movieInput").value = title;
 
-  // Show a loading preview
   const preview = document.getElementById("preview");
   preview.innerHTML = `<div class="dropdown-searching">Loading details...</div>`;
   preview.classList.add("show");
@@ -118,12 +124,12 @@ async function selectMovie(imdbId, title) {
   const details = await fetchOMDBDetails(imdbId);
 
   selected = {
-    title:       details.Title,
-    posterUrl:   details.Poster !== "N/A" ? details.Poster : null,
-    year:        details.Year   !== "N/A" ? details.Year   : null,
-    imdbRating:  details.imdbRating !== "N/A" ? details.imdbRating : null,
-    runtime:     details.Runtime    !== "N/A" ? details.Runtime    : null,
-    imdbId:      details.imdbID,
+    title:      details.Title,
+    posterUrl:  details.Poster     !== "N/A" ? details.Poster     : null,
+    year:       details.Year       !== "N/A" ? details.Year       : null,
+    imdbRating: details.imdbRating !== "N/A" ? details.imdbRating : null,
+    runtime:    details.Runtime    !== "N/A" ? details.Runtime    : null,
+    imdbId:     details.imdbID,
   };
 
   document.getElementById("movieInput").value = selected.title;
@@ -156,7 +162,7 @@ async function addMovie() {
   if (!title) return;
 
   const btn = document.getElementById("addBtn");
-  btn.disabled = true;
+  btn.disabled    = true;
   btn.textContent = "Adding...";
 
   const body = {
@@ -201,7 +207,8 @@ async function vote(movieId, direction) {
     myVotes[movieId] = 0;
     pendingVotes.set(movieId, 0);
   } else {
-    if (prev === 1) movie.upvotes--;   if (prev === -1) movie.downvotes--;
+    if (prev === 1)  movie.upvotes--;
+    if (prev === -1) movie.downvotes--;
     if (direction === 1) movie.upvotes++; else movie.downvotes++;
     myVotes[movieId] = direction;
     pendingVotes.set(movieId, direction);
@@ -218,7 +225,7 @@ async function vote(movieId, direction) {
   } catch (e) {
     console.error("Vote failed:", e);
   } finally {
-    pendingVotes.delete(movieId); // poll can safely update this movie again
+    pendingVotes.delete(movieId);
   }
 }
 
@@ -233,7 +240,7 @@ async function deleteMovie(movieId) {
   } catch (e) {
     console.error("Delete failed:", e);
   } finally {
-    pendingDeletes.delete(movieId); // safe to poll again
+    pendingDeletes.delete(movieId);
   }
 }
 
@@ -265,15 +272,21 @@ function render() {
   }
 
   list.innerHTML = items.map((m, i) => {
-    const s      = m.upvotes - m.downvotes;
-    const cls    = s > 0 ? "pos" : s < 0 ? "neg" : "zero";
-    const myVote = myVotes[m.movieId] || 0;
-    const title  = (m.title || "").length > 50 ? m.title.slice(0, 50) + "…" : m.title;
-    const adder  = (m.addedBy || "anonymous").split("@")[0];
+    const s       = m.upvotes - m.downvotes;
+    const cls     = s > 0 ? "pos" : s < 0 ? "neg" : "zero";
+    const myVote  = myVotes[m.movieId] || 0;
+    const title   = (m.title || "").length > 50 ? m.title.slice(0, 50) + "…" : m.title;
+    const adder   = (m.addedBy || "anonymous").split("@")[0];
+    const hasImdb = !!m.imdbId;
 
     const poster = m.posterUrl
       ? `<img class="poster" src="${m.posterUrl}" alt="${escHtml(m.title)}" loading="lazy" />`
       : `<div class="poster-placeholder">🎬</div>`;
+
+    // Clickable title for IMDB-linked movies, plain text otherwise
+    const titleEl = hasImdb
+      ? `<a class="movie-title imdb-link" href="https://www.imdb.com/title/${m.imdbId}/" target="_blank" rel="noopener">${escHtml(title)}</a>`
+      : `<div class="movie-title">${escHtml(title)}</div>`;
 
     const metaParts = [
       m.year,
@@ -283,11 +296,11 @@ function render() {
     ].filter(Boolean).join(" · ");
 
     return `
-      <div class="movie-card">
+      <div class="movie-card${hasImdb ? " has-imdb" : ""}">
         <span class="rank">${i + 1}</span>
         ${poster}
         <div class="movie-info">
-          <div class="movie-title">${escHtml(title)}</div>
+          ${titleEl}
           <div class="movie-meta">${metaParts}</div>
         </div>
         <div class="vote-area">
@@ -308,10 +321,7 @@ async function loadMovies() {
     const res = await fetch(`${API}/movies`);
     let data  = await res.json();
 
-    // Skip movies mid-delete
     data = data.filter(m => !pendingDeletes.has(m.movieId));
-
-    // For movies mid-vote, keep our optimistic counts instead of the server's
     data = data.map(m => {
       if (pendingVotes.has(m.movieId)) {
         const local = movies.find(l => l.movieId === m.movieId);
@@ -330,10 +340,8 @@ async function loadMovies() {
   }
 }
 
-// Poll every 5 seconds, but pause when the tab is hidden
 function startPolling() {
   let interval = setInterval(loadMovies, 5000);
-
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       clearInterval(interval);
@@ -344,11 +352,10 @@ function startPolling() {
   });
 }
 
-loadMovies().then(startPolling);
-
 function escHtml(str = "") {
   return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
             .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
 }
 
-loadMovies();
+// Single entry point — no duplicate loadMovies() call
+loadMovies().then(startPolling);
