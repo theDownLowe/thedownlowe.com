@@ -1,4 +1,4 @@
-const API      = "https://cafxsaev4i.execute-api.us-west-2.amazonaws.com/prod";
+const API      = "https://pujum14h27.execute-api.us-west-2.amazonaws.com/";
 const OMDB_KEY = "fee9427d";
 const OMDB_URL = "https://www.omdbapi.com/";
 
