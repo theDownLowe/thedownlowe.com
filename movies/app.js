@@ -289,17 +289,38 @@ function render() {
   }).join("");
 }
 
-// ── Load ──────────────────────────────────────────────────────────────────────
+// ── Load & Poll ───────────────────────────────────────────────────────────────
 async function loadMovies() {
   try {
-    const res = await fetch(`${API}/movies`);
-    movies = await res.json();
-    render();
+    const res  = await fetch(`${API}/movies`);
+    const data = await res.json();
+
+    // Only re-render if something actually changed
+    if (JSON.stringify(data) !== JSON.stringify(movies)) {
+      movies = data;
+      render();
+    }
   } catch (e) {
     document.getElementById("movieList").innerHTML =
       '<div class="empty">Could not load movies. Try refreshing.</div>';
   }
 }
+
+// Poll every 5 seconds, but pause when the tab is hidden
+function startPolling() {
+  let interval = setInterval(loadMovies, 5000);
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      clearInterval(interval);
+    } else {
+      loadMovies();
+      interval = setInterval(loadMovies, 5000);
+    }
+  });
+}
+
+loadMovies().then(startPolling);
 
 function escHtml(str = "") {
   return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
