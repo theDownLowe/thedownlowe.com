@@ -236,6 +236,12 @@ async function addMovie() {
   const title      = selected ? selected.title : titleInput.value.trim();
   if (!title) return;
 
+  const isDuplicate = movies.some(m => m.title.toLowerCase() === title.toLowerCase());
+  if (isDuplicate) {
+    alert(`"${title}" is already on the list!`);
+    return;
+  }
+
   const btn = document.getElementById("addBtn");
   btn.disabled = true; btn.textContent = "Adding...";
 
