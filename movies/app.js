@@ -2,6 +2,25 @@ const API      = "https://cafxsaev4i.execute-api.us-west-2.amazonaws.com/prod";
 const OMDB_KEY = "fee9427d";
 const OMDB_URL = "https://www.omdbapi.com/";
 
+// ── OMDB Cache ────────────────────────────────────────────────────────────────
+const CACHE_SEARCH_TTL = 1000 * 60 * 60 * 24;     // search results: 24 hours
+const CACHE_DETAIL_TTL = 1000 * 60 * 60 * 24 * 7; // movie details:  7 days
+
+function cacheSet(key, data, ttl) {
+  try {
+    localStorage.setItem("omdb_" + key, JSON.stringify({ data, expires: Date.now() + ttl }));
+  } catch (e) {} // ignore if localStorage is full
+}
+
+function cacheGet(key) {
+  try {
+    const entry = JSON.parse(localStorage.getItem("omdb_" + key));
+    if (entry && Date.now() < entry.expires) return entry.data;
+    localStorage.removeItem("omdb_" + key);
+  } catch (e) {}
+  return null;
+}
+
 // ── Voter ID ──────────────────────────────────────────────────────────────────
 function getVoterId() {
   let id = localStorage.getItem("downlowe_voter_id");
