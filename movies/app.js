@@ -62,6 +62,18 @@ async function addMovie() {
   }
 }
 
+// ── Delete Movie ──────────────────────────────────────────────────────────────────────
+async function deleteMovie(movieId) {
+  if (!confirm("Remove this movie?")) return;
+  movies = movies.filter(m => m.movieId !== movieId);
+  render();
+  try {
+    await fetch(`${API}/movies/${movieId}`, { method: "DELETE" });
+  } catch (e) {
+    console.error("Delete failed:", e);
+  }
+}
+
 // ── Vote ──────────────────────────────────────────────────────────────────────
 async function vote(movieId, direction) {
   const voterId = getVoterId();
@@ -134,21 +146,22 @@ function render() {
     const title   = m.title.length > 50 ? m.title.slice(0, 50) + "…" : m.title;
     const adder   = (m.addedBy || "anonymous").split("@")[0];
 
-    return `
-      <div class="movie-card">
-        <span class="rank">${i + 1}</span>
-        <div class="movie-info">
-          <div class="movie-title">${escHtml(title)}</div>
-          <div class="movie-meta">added by ${escHtml(adder)}</div>
-        </div>
-        <div class="vote-area">
-          <button class="vote-btn up ${myVote === 1 ? "active" : ""}"
-            onclick="vote('${m.movieId}', 1)" title="Thumbs up">▲</button>
-          <span class="score ${cls}">${s > 0 ? "+" : ""}${s}</span>
-          <button class="vote-btn down ${myVote === -1 ? "active" : ""}"
-            onclick="vote('${m.movieId}', -1)" title="Thumbs down">▼</button>
-        </div>
-      </div>`;
+return `
+  <div class="movie-card">
+    <span class="rank">${i + 1}</span>
+    <div class="movie-info">
+      <div class="movie-title">${escHtml(title)}</div>
+      <div class="movie-meta">added by ${escHtml(adder)}</div>
+    </div>
+    <div class="vote-area">
+      <button class="vote-btn up ${myVote === 1 ? "active" : ""}"
+        onclick="vote('${m.movieId}', 1)" title="Thumbs up">▲</button>
+      <span class="score ${cls}">${s > 0 ? "+" : ""}${s}</span>
+      <button class="vote-btn down ${myVote === -1 ? "active" : ""}"
+        onclick="vote('${m.movieId}', -1)" title="Thumbs down">▼</button>
+      <button class="delete-btn" onclick="deleteMovie('${m.movieId}')" title="Delete">✕</button>
+    </div>
+  </div>`;
   }).join("");
 }
 

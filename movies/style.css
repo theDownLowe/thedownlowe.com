@@ -190,6 +190,27 @@ body {
 .score.neg  { color: var(--red); }
 .score.zero { color: var(--muted); }
 
+.delete-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  margin-left: 4px;
+}
+.delete-btn:hover {
+  background: #fdf0f0;
+  border-color: #f5b8b8;
+  color: var(--red);
+}
+
 /* ── Mobile ── */
 @media (max-width: 480px) {
   .suggest-bar { flex-direction: column; }
