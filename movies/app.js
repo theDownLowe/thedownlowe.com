@@ -34,6 +34,8 @@ let myVotes  = JSON.parse(localStorage.getItem("downlowe_votes") || "{}");
 let sortMode = "score";
 let selected = null; // the OMDB result the user picked from the dropdown
 let searchTimer = null;
+const pendingDeletes = new Set();
+const pendingVotes   = new Map();
 
 function saveVotes() { localStorage.setItem("downlowe_votes", JSON.stringify(myVotes)); }
 
@@ -197,10 +199,12 @@ async function vote(movieId, direction) {
   if (prev === direction) {
     if (direction === 1) movie.upvotes--; else movie.downvotes--;
     myVotes[movieId] = 0;
+    pendingVotes.set(movieId, 0);
   } else {
     if (prev === 1) movie.upvotes--;   if (prev === -1) movie.downvotes--;
     if (direction === 1) movie.upvotes++; else movie.downvotes++;
     myVotes[movieId] = direction;
+    pendingVotes.set(movieId, direction);
   }
   saveVotes();
   render();
@@ -211,17 +215,26 @@ async function vote(movieId, direction) {
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ movieId, direction, voterId }),
     });
-  } catch (e) { console.error("Vote failed:", e); }
+  } catch (e) {
+    console.error("Vote failed:", e);
+  } finally {
+    pendingVotes.delete(movieId); // poll can safely update this movie again
+  }
 }
 
 // ── Delete ────────────────────────────────────────────────────────────────────
 async function deleteMovie(movieId) {
   if (!confirm("Remove this movie?")) return;
+  pendingDeletes.add(movieId);
   movies = movies.filter(m => m.movieId !== movieId);
   render();
   try {
     await fetch(`${API}/movies/${movieId}`, { method: "DELETE" });
-  } catch (e) { console.error("Delete failed:", e); }
+  } catch (e) {
+    console.error("Delete failed:", e);
+  } finally {
+    pendingDeletes.delete(movieId); // safe to poll again
+  }
 }
 
 // ── Sort ──────────────────────────────────────────────────────────────────────
@@ -292,10 +305,21 @@ function render() {
 // ── Load & Poll ───────────────────────────────────────────────────────────────
 async function loadMovies() {
   try {
-    const res  = await fetch(`${API}/movies`);
-    const data = await res.json();
+    const res = await fetch(`${API}/movies`);
+    let data  = await res.json();
 
-    // Only re-render if something actually changed
+    // Skip movies mid-delete
+    data = data.filter(m => !pendingDeletes.has(m.movieId));
+
+    // For movies mid-vote, keep our optimistic counts instead of the server's
+    data = data.map(m => {
+      if (pendingVotes.has(m.movieId)) {
+        const local = movies.find(l => l.movieId === m.movieId);
+        return local || m;
+      }
+      return m;
+    });
+
     if (JSON.stringify(data) !== JSON.stringify(movies)) {
       movies = data;
       render();
