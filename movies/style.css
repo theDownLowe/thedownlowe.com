@@ -4,6 +4,7 @@
   --green:      #1D9E75;
   --green-dark: #0F6E56;
   --red:        #E24B4A;
+  --purple:     #6B3FA0;
   --surface:    #ffffff;
   --border:     #d0cdc8;
   --text:       #1a1a1a;
@@ -315,6 +316,7 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 .voter-names { font-size: 0.75rem; font-weight: 500; }
 .voter-names.up   { color: var(--green); }
 .voter-names.down { color: var(--red); }
+.voter-names.seen { color: var(--purple); }
 .seen-names-row { font-size: 0.75rem; color: var(--muted); }
 .comments-toggle-row {
   margin-left: auto;

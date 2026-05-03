@@ -543,9 +543,9 @@ function buildCard(m, rank, mode) {
 
   // ── Footer: all in one wrapping flex row ──
   const footerContent = [
-    upNames.length   ? `<span class="voter-names up">▲ ${upNames.join(", ")}</span>`    : "",
+    upNames.length   ? `<span class="voter-names up">▲ ${upNames.join(", ")}</span>`     : "",
     downNames.length ? `<span class="voter-names down">▼ ${downNames.join(", ")}</span>` : "",
-    seenNames.length ? `<span class="seen-names">seen by ${seenNames.join(", ")}</span>` : "",
+    seenNames.length ? `<span class="voter-names seen">👁 ${seenNames.join(", ")}</span>` : "",
   ].filter(Boolean).join("");
 
   // Queue side button
@@ -568,6 +568,7 @@ function buildCard(m, rank, mode) {
         </svg>
       </button>`;
 
+  // Drag handle (queue mode only)
   const dragHandle = mode === "queue"
     ? `<div class="drag-handle" title="Drag to reorder">
         <svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor">
