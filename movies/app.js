@@ -527,25 +527,26 @@ function buildCard(m, rank, mode) {
 
   const upNames   = (m.upvoters   || []).map(u => u === username ? "you" : u);
   const downNames = (m.downvoters || []).map(u => u === username ? "you" : u);
-  const voterRow  = (upNames.length || downNames.length) ? `
-    <div class="voter-row">
-      ${upNames.length   ? `<span class="voter-names up">▲ ${upNames.join(", ")}</span>`   : ""}
-      ${downNames.length ? `<span class="voter-names down">▼ ${downNames.join(", ")}</span>` : ""}
-    </div>` : "";
-
-  const seenNames = (m.seenBy || []).map(u => u === username ? "you" : u);
-  const seenNamesRow = seenNames.length ? `<div class="seen-names-row"><span class="seen-names">seen by ${seenNames.join(", ")}</span></div>` : "";
+  const seenNames = (m.seenBy     || []).map(u => u === username ? "you" : u);
 
   const count    = cardComments[m.movieId]?.length;
   const countStr = count !== undefined ? `${count} ` : "";
   const expanded = expandedCards.has(m.movieId);
   const commentsToggle = `
-  <button class="comments-toggle-btn" data-movie-id="${m.movieId}" onclick="toggleComments('${m.movieId}')">
-    💬 <span id="comment-count-${m.movieId}">${countStr}</span>comment${count !== 1 ? "s" : ""} ${expanded ? "▲" : "▼"}
-  </button>`;
+    <button class="comments-toggle-btn" data-movie-id="${m.movieId}" onclick="toggleComments('${m.movieId}')">
+      💬 <span id="comment-count-${m.movieId}">${countStr}</span>comment${count !== 1 ? "s" : ""} ${expanded ? "▲" : "▼"}
+    </button>`;
+
   const commentsSection = expanded
     ? `<div class="comments-section" id="comments-section-${m.movieId}"><div class="comments-loading">Loading...</div></div>`
     : "";
+
+  // ── Footer: all in one wrapping flex row ──
+  const footerContent = [
+    upNames.length   ? `<span class="voter-names up">▲ ${upNames.join(", ")}</span>`    : "",
+    downNames.length ? `<span class="voter-names down">▼ ${downNames.join(", ")}</span>` : "",
+    seenNames.length ? `<span class="seen-names">seen by ${seenNames.join(", ")}</span>` : "",
+  ].filter(Boolean).join("");
 
   // Queue side button
   const queueBtn = mode === "queue"
@@ -567,7 +568,6 @@ function buildCard(m, rank, mode) {
         </svg>
       </button>`;
 
-  // Drag handle (queue mode only)
   const dragHandle = mode === "queue"
     ? `<div class="drag-handle" title="Drag to reorder">
         <svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor">
@@ -594,8 +594,7 @@ function buildCard(m, rank, mode) {
       </div>
     </div>
     <div class="card-footer">
-      ${voterRow}
-      ${seenNamesRow}
+      ${footerContent}
       <div class="comments-toggle-row">${commentsToggle}</div>
     </div>
     ${commentsSection}`;

@@ -302,8 +302,14 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 
 /* ── Card footer ── */
 .card-footer {
-  border-top: 1px solid #f0ece8; padding: 8px 14px;
-  display: flex; flex-direction: column; gap: 6px; background: #faf9f7;
+  border-top: 1px solid #f0ece8;
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  background: #faf9f7;
 }
 .voter-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .voter-names { font-size: 0.75rem; font-weight: 500; }
@@ -311,8 +317,7 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 .voter-names.down { color: var(--red); }
 .seen-names-row { font-size: 0.75rem; color: var(--muted); }
 .comments-toggle-row {
-  display: flex;
-  justify-content: flex-end;
+  margin-left: auto;
 }
 .comments-toggle-btn {
   font-size: 0.78rem; padding: 4px 0; background: transparent; border: none;
