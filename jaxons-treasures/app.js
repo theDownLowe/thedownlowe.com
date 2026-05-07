@@ -88,7 +88,7 @@ function navigate(view, params = {}) {
   document.querySelectorAll(".nav-tab").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.view === view);
   });
-  const views = { dashboard, sell, inventory, carts, history };
+  const views = { dashboard, inventory, carts, history };
   if (views[view]) views[view](params);
 }
 
@@ -189,11 +189,14 @@ function showApp() {
   document.getElementById("bottom-nav").classList.remove("hidden");
   document.getElementById("logout-btn").classList.remove("hidden");
 
-  // Check for QR scan param
-  const params   = new URLSearchParams(window.location.search);
-  const scanId   = params.get("scan");
+  const params = new URLSearchParams(window.location.search);
+  const scanId = params.get("scan");
   if (scanId) {
-    navigate("sell", { itemId: scanId });
+    // Navigate to inventory and open the sell modal for the scanned item
+    navigate("inventory");
+    api.getItem(scanId)
+      .then(({ item }) => openSellModal(item))
+      .catch(() => toast("Item not found", "error"));
   } else {
     navigate("dashboard");
   }
@@ -273,263 +276,145 @@ async function dashboard() {
 }
 
 /* ── Sell / Scan View ─────────────────────────────────────────────────────── */
-async function sell({ itemId } = {}) {
-  setView(`
-    <div class="sell-search">
-      <div style="position:relative">
-        <span class="sell-search-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-        </span>
-        <input type="text" id="sell-search" placeholder="Search items…" autocomplete="off"
-               style="padding-left:44px" />
-      </div>
-    </div>
-    <div id="sell-item-grid"></div>
-    <div id="sell-item-area"></div>
-  `);
+/* ── Sell Modal (opened from inventory card tap or QR scan) ───────────────── */
+function openSellModal(item) {
+  let current = { ...item };
 
-  let selectedItem = null;
-
-  // Load and display the in-stock item grid
-  async function loadItemGrid(filter = "") {
-    const grid = document.getElementById("sell-item-grid");
-    if (!grid) return;
-    if (!itemsCache.length) {
-      grid.innerHTML = spinnerHtml();
-      try { const d = await api.getItems(); itemsCache = d.items; } catch {}
-    }
-    const inStock = itemsCache
-      .filter(i => i.quantity > 0)
-      .filter(i => !filter || i.name.toLowerCase().includes(filter.toLowerCase()) ||
-                   (i.category || "").toLowerCase().includes(filter.toLowerCase()));
-
-    if (!inStock.length) {
-      grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📦</div>
-        <p>${filter ? "No items match your search." : "No items in stock."}</p></div>`;
-      return;
-    }
-
-    grid.innerHTML = `
-      <div class="item-list" style="padding-top:4px">
-        ${inStock.map(item => `
-          <div class="sell-grid-item" data-item-id="${item.itemId}">
-            ${item.imageUrl
-              ? `<div class="item-thumb"><img src="${item.imageUrl}" alt="" /></div>`
-              : `<div class="item-thumb">📦</div>`}
-            <div class="item-info">
-              <div class="item-name">${item.name}</div>
-              <div class="item-meta">
-                <span class="item-price">${fmt(item.price)}</span>
-                <span style="margin:0 6px">·</span>
-                <span class="${stockClass(item.quantity)}">${stockLabel(item.quantity)}</span>
-              </div>
-              ${item.category ? `<span class="badge badge-ocean" style="margin-top:4px">${item.category}</span>` : ""}
-            </div>
-          </div>`).join("")}
-      </div>`;
-
-    document.querySelectorAll(".sell-grid-item[data-item-id]").forEach(el => {
-      el.onclick = () => {
-        const item = itemsCache.find(i => i.itemId === el.dataset.itemId);
-        if (item) renderSelectedItem(item);
-      };
-    });
-  }
-
-  // Search filter
-  const searchInput = document.getElementById("sell-search");
-  let searchTimer;
-  searchInput.addEventListener("input", () => {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => {
-      const q = searchInput.value.trim();
-      if (document.getElementById("sell-item-area").innerHTML) {
-        // If an item is selected and user types again, clear selection and go back to grid
-        document.getElementById("sell-item-area").innerHTML = "";
-      }
-      loadItemGrid(q);
-    }, 150);
-  });
-
-  loadItemGrid();
-
-  async function renderSelectedItem(item) {
-    selectedItem = item;
-    document.getElementById("sell-item-grid").innerHTML = "";
-    document.getElementById("sell-search").value = item.name;
-
-    const area = document.getElementById("sell-item-area");
-    area.innerHTML = `
-      <div style="padding:4px 16px 0">
-        <button class="btn btn-ghost" id="sell-back-btn" style="padding:0;color:var(--text-muted);font-size:.85rem">
-          ← Back to items
-        </button>
-      </div>
-      <div class="selected-item-card">
-        ${item.imageUrl
-          ? `<div class="selected-item-img"><img src="${item.imageUrl}" alt="" /></div>`
+  function bodyHtml() {
+    return `
+      <div style="display:flex;gap:14px;align-items:flex-start;padding:0 0 16px;border-bottom:1px solid var(--border);margin-bottom:16px">
+        ${current.imageUrl
+          ? `<div class="selected-item-img"><img src="${current.imageUrl}" alt="" /></div>`
           : `<div class="selected-item-img">📦</div>`}
         <div style="flex:1;min-width:0">
-          <div class="selected-item-name">${item.name}</div>
-          <div class="selected-item-price">${fmt(item.price)}</div>
-          <div class="selected-item-stock ${stockClass(item.quantity)}">${stockLabel(item.quantity)}</div>
-          ${item.category ? `<div style="margin-top:4px"><span class="badge badge-amber">${item.category}</span></div>` : ""}
+          <div class="selected-item-price">${fmt(current.price)}</div>
+          <div class="selected-item-stock ${stockClass(current.quantity)}">${stockLabel(current.quantity)}</div>
+          ${current.category ? `<span class="badge badge-ocean">${current.category}</span>` : ""}
         </div>
       </div>
 
-      <div class="sell-controls">
-        <div class="form-group">
-          <label>Quantity</label>
-          <div class="qty-control">
-            <button class="qty-btn" id="qty-minus">−</button>
-            <input type="number" class="qty-value" id="qty-val" value="1" min="1" max="${item.quantity}" />
-            <button class="qty-btn" id="qty-plus">+</button>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Sale Price <span style="font-weight:400;color:var(--text-muted)">(default: ${fmt(item.price)})</span></label>
-          <input type="number" id="sale-price" value="${item.price}" step="0.01" min="0" />
-        </div>
-        <div class="form-group">
-          <label>Note <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
-          <input type="text" id="sale-note" placeholder="e.g. discount applied" />
+      <div class="form-group">
+        <label>Quantity</label>
+        <div class="qty-control">
+          <button class="qty-btn" id="sm-minus">−</button>
+          <input type="number" class="qty-value" id="sm-qty" value="1" min="1" max="${current.quantity}" />
+          <button class="qty-btn" id="sm-plus">+</button>
         </div>
       </div>
-
-      <div class="sell-actions">
-        <button class="btn btn-primary btn-full btn-lg" id="quick-sell-btn"
-          ${item.quantity === 0 ? "disabled" : ""}>
+      <div class="form-group">
+        <label>Sale Price <span style="font-weight:400;color:var(--text-muted)">(default: ${fmt(current.price)})</span></label>
+        <input type="number" id="sm-price" value="${current.price}" step="0.01" min="0" />
+      </div>
+      <div class="form-group">
+        <label>Note <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
+        <input type="text" id="sm-note" placeholder="e.g. discount applied" />
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+        <button class="btn btn-primary btn-full btn-lg" id="sm-sell-btn" ${current.quantity === 0 ? "disabled" : ""}>
           ⚡ Quick Sell
         </button>
-        <button class="btn btn-secondary btn-full" id="add-to-cart-btn"
-          ${item.quantity === 0 ? "disabled" : ""}>
+        <button class="btn btn-secondary btn-full" id="sm-cart-btn" ${current.quantity === 0 ? "disabled" : ""}>
           🧾 Add to Cart
         </button>
       </div>
     `;
+  }
 
-    document.getElementById("sell-back-btn").onclick = () => {
-      area.innerHTML = "";
-      document.getElementById("sell-search").value = "";
-      loadItemGrid();
-    };
-    document.getElementById("qty-minus").onclick = () => {
-      const inp = document.getElementById("qty-val");
+  function rebind() {
+    document.getElementById("sm-minus").onclick = () => {
+      const inp = document.getElementById("sm-qty");
       inp.value = Math.max(1, Number(inp.value) - 1);
     };
-    document.getElementById("qty-plus").onclick = () => {
-      const inp = document.getElementById("qty-val");
-      inp.value = Math.min(item.quantity, Number(inp.value) + 1);
+    document.getElementById("sm-plus").onclick = () => {
+      const inp = document.getElementById("sm-qty");
+      inp.value = Math.min(current.quantity, Number(inp.value) + 1);
     };
-
-    document.getElementById("quick-sell-btn").onclick = () => doSell(item);
-    document.getElementById("add-to-cart-btn").onclick = () => doAddToCart(item);
-  }
-
-  async function doSell(item) {
-    const qty   = Number(document.getElementById("qty-val").value);
-    const price = Number(document.getElementById("sale-price").value);
-    const note  = document.getElementById("sale-note").value;
-    const btn   = document.getElementById("quick-sell-btn");
-    btn.disabled = true;
-    btn.textContent = "Recording…";
-    try {
-      const { transaction, remainingStock } = await api.sellItem(item.itemId, {
-        quantity: qty, priceOverride: price, note,
-      });
-      toast(`Sold ${qty}× ${item.name} for ${fmt(transaction.total)}`, "success");
-      // Refresh item with updated stock
-      const fresh = { ...item, quantity: remainingStock };
-      renderSelectedItem(fresh);
-    } catch (e) {
-      toast(e.message, "error");
-      btn.disabled = false;
-      btn.textContent = "⚡ Quick Sell";
-    }
-  }
-
-  async function doAddToCart(item) {
-    const qty   = Number(document.getElementById("qty-val").value);
-    const price = Number(document.getElementById("sale-price").value);
-    // Show cart picker
-    let cartsData;
-    try { cartsData = await api.getCarts(); } catch { cartsData = { carts: [] }; }
-
-    const line = { itemId: item.itemId, name: item.name, quantity: qty, price };
-    const openCarts = cartsData.carts;
-
-    openModal("Add to Cart", `
-      ${openCarts.length ? `
-        <p style="font-size:.9rem;color:var(--text-muted);margin-bottom:12px">Select an open cart or create a new one:</p>
-        ${openCarts.map(c => `
-          <button class="btn btn-secondary btn-full" style="margin-bottom:8px;justify-content:space-between"
-            data-cart-id="${c.cartId}">
-            <span>${c.customerName || "Unnamed Cart"}</span>
-            <span style="color:var(--text-muted)">${fmt(c.total)} · ${c.lines.length} item${c.lines.length !== 1 ? "s" : ""}</span>
-          </button>`).join("")}
-        <div class="divider" style="margin:12px 0"></div>` : ""}
-      <button class="btn btn-primary btn-full" id="new-cart-btn">+ Create New Cart</button>
-    `);
-
-    document.querySelectorAll("[data-cart-id]").forEach(btn => {
-      btn.onclick = async () => {
-        const cartId = btn.dataset.cartId;
-        await addLineToCart(cartId, line);
-        closeModal();
-      };
-    });
-
-    document.getElementById("new-cart-btn").onclick = async () => {
-      closeModal();
-      openModal("New Cart", `
-        <div class="form-group">
-          <label>Customer Name <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
-          <input type="text" id="new-cart-name" placeholder="e.g. Jane" />
-        </div>
-        <div class="form-group">
-          <label>Customer Email <span style="font-weight:400;color:var(--text-muted)">(optional, for receipt)</span></label>
-          <input type="email" id="new-cart-email" placeholder="jane@example.com" />
-        </div>
-        <button class="btn btn-primary btn-full" id="create-cart-confirm">Create Cart</button>
-      `);
-      document.getElementById("create-cart-confirm").onclick = async () => {
-        const customerName  = document.getElementById("new-cart-name").value;
-        const customerEmail = document.getElementById("new-cart-email").value;
-        try {
-          const { cart } = await api.createCart({ customerName, customerEmail });
-          await addLineToCart(cart.cartId, line);
-          closeModal();
-        } catch (e) { toast(e.message, "error"); }
-      };
-    };
-  }
-
-  async function addLineToCart(cartId, line) {
-    try {
-      const { cart } = await api.getCart(cartId);
-      const lines = [...(cart.lines || [])];
-      const existing = lines.find(l => l.itemId === line.itemId && l.price === line.price);
-      if (existing) {
-        existing.quantity += line.quantity;
-      } else {
-        lines.push(line);
+    document.getElementById("sm-sell-btn").onclick = async () => {
+      const qty   = Number(document.getElementById("sm-qty").value);
+      const price = Number(document.getElementById("sm-price").value);
+      const note  = document.getElementById("sm-note").value;
+      const btn   = document.getElementById("sm-sell-btn");
+      btn.disabled = true; btn.textContent = "Recording…";
+      try {
+        const { transaction, remainingStock } = await api.sellItem(current.itemId, {
+          quantity: qty, priceOverride: price, note,
+        });
+        const idx = itemsCache.findIndex(i => i.itemId === current.itemId);
+        if (idx > -1) itemsCache[idx] = { ...itemsCache[idx], quantity: remainingStock };
+        current = { ...current, quantity: remainingStock };
+        toast(`Sold ${qty}× ${current.name} for ${fmt(transaction.total)}`, "success");
+        // Re-render modal body with updated stock
+        document.querySelector("#modal-content .modal-body").innerHTML = bodyHtml();
+        rebind();
+      } catch (e) {
+        toast(e.message, "error");
+        btn.disabled = false; btn.textContent = "⚡ Quick Sell";
       }
-      await api.updateCart(cartId, { lines });
-      toast(`Added to cart`, "success");
-    } catch (e) { toast(e.message, "error"); }
+    };
+    document.getElementById("sm-cart-btn").onclick = async () => {
+      const qty   = Number(document.getElementById("sm-qty").value);
+      const price = Number(document.getElementById("sm-price").value);
+      const line  = { itemId: current.itemId, name: current.name, quantity: qty, price };
+      let cartsData;
+      try { cartsData = await api.getCarts(); } catch { cartsData = { carts: [] }; }
+      const openCarts = cartsData.carts;
+
+      openModal("Add to Cart", `
+        ${openCarts.length ? `
+          <p style="font-size:.9rem;color:var(--text-muted);margin-bottom:12px">Choose a cart or create a new one:</p>
+          ${openCarts.map(c => `
+            <button class="btn btn-secondary btn-full" style="margin-bottom:8px;justify-content:space-between" data-cart-id="${c.cartId}">
+              <span>${c.customerName || "Unnamed Cart"}</span>
+              <span style="color:var(--text-muted)">${fmt(c.total)} · ${c.lines.reduce((s,l)=>s+Number(l.quantity),0)} items</span>
+            </button>`).join("")}
+          <div class="divider" style="margin:12px 0"></div>` : ""}
+        <button class="btn btn-primary btn-full" id="new-cart-btn">+ Create New Cart</button>
+      `);
+
+      document.querySelectorAll("[data-cart-id]").forEach(b => {
+        b.onclick = async () => { await addLineToCart(b.dataset.cartId, line); closeModal(); };
+      });
+      document.getElementById("new-cart-btn").onclick = () => {
+        closeModal();
+        openModal("New Cart", `
+          <div class="form-group">
+            <label>Customer Name <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
+            <input type="text" id="nc-name" placeholder="e.g. Jane" />
+          </div>
+          <div class="form-group">
+            <label>Customer Email <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
+            <input type="email" id="nc-email" placeholder="jane@example.com" />
+          </div>
+          <button class="btn btn-primary btn-full" id="nc-create">Create Cart</button>
+        `);
+        document.getElementById("nc-create").onclick = async () => {
+          try {
+            const { cart } = await api.createCart({
+              customerName:  document.getElementById("nc-name").value,
+              customerEmail: document.getElementById("nc-email").value,
+            });
+            await addLineToCart(cart.cartId, line);
+            closeModal();
+          } catch (e) { toast(e.message, "error"); }
+        };
+      };
+    };
   }
 
-  // Auto-load item from QR scan
-  if (itemId) {
-    try {
-      const { item } = await api.getItem(itemId);
-      renderSelectedItem(item);
-    } catch {
-      toast("Item not found", "error");
-    }
-  }
+  openModal(current.name, bodyHtml());
+  rebind();
+}
+
+async function addLineToCart(cartId, line) {
+  try {
+    const { cart } = await api.getCart(cartId);
+    const lines    = [...(cart.lines || [])];
+    const existing = lines.find(l => l.itemId === line.itemId && l.price === line.price);
+    if (existing) existing.quantity += line.quantity;
+    else          lines.push(line);
+    await api.updateCart(cartId, { lines });
+    toast("Added to cart", "success");
+  } catch (e) { toast(e.message, "error"); }
 }
 
 /* ── Inventory View ───────────────────────────────────────────────────────── */
@@ -611,7 +496,7 @@ function renderInventoryList(items, filter = "") {
   document.querySelectorAll(".item-card[data-item-id]").forEach(card => {
     card.onclick = () => {
       const item = itemsCache.find(i => i.itemId === card.dataset.itemId);
-      if (item) openItemModal(item);
+      if (item) openSellModal(item);
     };
   });
 }
