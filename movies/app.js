@@ -615,8 +615,8 @@ async function sendChatMessage() {
 function toggleChat() {
   chatMinimized = !chatMinimized;
   document.getElementById("chatPanel").classList.toggle("minimized", chatMinimized);
-  document.getElementById("chatMinBtn").textContent   = chatMinimized ? "▼" : "▼";
-  document.getElementById("chatTabArrow").textContent = chatMinimized ? "‹" : "›";
+  document.getElementById("chatToggleBtn").textContent = chatMinimized ? "◀" : "▶";
+  document.querySelector(".page-wrapper").style.marginRight = chatMinimized ? "0" : "310px";
   if (!chatMinimized) {
     chatUnread = 0;
     document.getElementById("chatBadge").style.display = "none";

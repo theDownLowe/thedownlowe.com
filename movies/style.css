@@ -13,6 +13,8 @@
 }
 .page-wrapper {
   min-height: 100vh;
+  margin-right: 310px;
+  transition: margin-right 0.25s ease;
 }
 
 html, body { min-height: 100%; }
@@ -346,55 +348,39 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
   border-left: 1px solid rgba(255,255,255,0.08);
   backdrop-filter: blur(10px);
   z-index: 100;
-  transform: translateX(0);
-  transition: transform 0.25s ease;
 }
 .chat-panel.minimized {
-  transform: translateX(100%);
+  height: auto;
 }
-
-/* Pull tab — sticks out from the left edge of the panel */
-.chat-tab {
-  position: absolute;
-  left: -38px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 38px;
-  height: 72px;
-  background: rgba(15, 15, 15, 0.95);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-right: none;
-  border-radius: 10px 0 0 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  cursor: pointer;
-  color: rgba(255,255,255,0.5);
-  font-size: 0.85rem;
-  transition: color 0.15s, background 0.15s;
-  user-select: none;
+.chat-panel.minimized .chat-body {
+  display: none;
 }
-.chat-tab:hover {
-  color: rgba(255,255,255,0.9);
-  background: rgba(30, 30, 30, 0.98);
-}
-.chat-tab-icon { font-size: 1rem; }
-.chat-tab-arrow { font-size: 0.65rem; }
 
 .chat-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 14px 16px;
+  padding: 12px 16px;
   border-bottom: 1px solid rgba(255,255,255,0.08);
   flex-shrink: 0;
 }
 .chat-title { font-size: 0.88rem; font-weight: 600; color: rgba(255,255,255,0.85); flex: 1; }
 .chat-badge { background: var(--green); color: #fff; font-size: 0.7rem; font-weight: 700; border-radius: 10px; padding: 1px 6px; min-width: 18px; text-align: center; }
-.chat-minimize-btn { background: transparent; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 0.75rem; padding: 4px 6px; border-radius: 6px; transition: color 0.1s, background 0.1s; }
-.chat-minimize-btn:hover { color: rgba(255,255,255,0.8); background: rgba(255,255,255,0.06); }
+.chat-toggle-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: color 0.1s, background 0.1s;
+  flex-shrink: 0;
+}
+.chat-toggle-btn:hover {
+  color: rgba(255,255,255,0.9);
+  background: rgba(255,255,255,0.06);
+}
 
 .chat-body { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .chat-messages {
