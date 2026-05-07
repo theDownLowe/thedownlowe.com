@@ -614,14 +614,13 @@ async function sendChatMessage() {
 
 function toggleChat() {
   chatMinimized = !chatMinimized;
-  const panel = document.getElementById("chatPanel");
-  const btn   = document.getElementById("chatMinBtn");
-  panel.classList.toggle("minimized", chatMinimized);
-  btn.textContent = chatMinimized ? "▲" : "▼";
+  document.getElementById("chatPanel").classList.toggle("minimized", chatMinimized);
+  document.getElementById("chatMinBtn").textContent   = chatMinimized ? "▼" : "▼";
+  document.getElementById("chatTabArrow").textContent = chatMinimized ? "‹" : "›";
   if (!chatMinimized) {
     chatUnread = 0;
     document.getElementById("chatBadge").style.display = "none";
-    scrollChatToBottom();
+    setTimeout(scrollChatToBottom, 50);
   }
 }
 
