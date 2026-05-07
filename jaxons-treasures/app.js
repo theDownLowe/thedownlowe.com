@@ -231,8 +231,8 @@ async function dashboard() {
         </div>
         <div class="stat-card">
           <div class="label">Inventory</div>
-          <div class="value">${itemsCache.length}</div>
-          <div class="sub">${outStock.length} out of stock</div>
+          <div class="value">${itemsCache.reduce((s, i) => s + (Number(i.quantity) || 0), 0)}</div>
+          <div class="sub">${outStock.length} type${outStock.length !== 1 ? "s" : ""} out of stock</div>
         </div>
       </div>
 
