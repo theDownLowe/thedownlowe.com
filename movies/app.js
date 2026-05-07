@@ -46,6 +46,10 @@ let dragListMovieSrcId = null;   // movie-within-list drag
 let currentDragListId  = null;   // which list the movie drag is in
 let rankingsPage = 1;
 const PAGE_SIZE  = 20;
+let chatMessages  = [];
+let chatMinimized = false;
+let chatUnread    = 0;
+let chatVisible   = true; // tracks if user is scrolled to bottom
 
 const pendingDeletes = new Set();
 const pendingVotes   = new Map();
@@ -547,6 +551,105 @@ function timeAgo(iso) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+// ── Chat ──────────────────────────────────────────────────────────────────────
+async function loadChat() {
+  try {
+    const res  = await fetch(`${API}/chat`);
+    const msgs = await res.json();
+    if (JSON.stringify(msgs) === JSON.stringify(chatMessages)) return;
+    const isNew    = msgs.length > chatMessages.length;
+    const wasAtBottom = isChatAtBottom();
+    chatMessages = msgs;
+    renderChat();
+    if (isNew && wasAtBottom) scrollChatToBottom();
+    if (isNew && chatMinimized) {
+      chatUnread++;
+      const badge = document.getElementById("chatBadge");
+      badge.textContent = chatUnread;
+      badge.style.display = "inline";
+    }
+  } catch (e) { console.error("Chat load failed:", e); }
+}
+
+function renderChat() {
+  const container = document.getElementById("chatMessages");
+  if (!chatMessages.length) {
+    container.innerHTML = '<div class="chat-empty">No messages yet. Say hi!</div>';
+    return;
+  }
+  container.innerHTML = chatMessages.map(m => {
+    const isOwn = auth?.username === m.username;
+    const time  = formatChatTime(m.createdAt);
+    return `<div class="chat-msg${isOwn ? " own" : ""}">
+      ${!isOwn ? `<div class="chat-msg-name">${escHtml(m.username)}</div>` : ""}
+      <div class="chat-bubble">${escHtml(m.text)}</div>
+      <div class="chat-msg-time">${time}</div>
+    </div>`;
+  }).join("");
+}
+
+async function sendChatMessage() {
+  if (!auth) { openAuthModal(); return; }
+  const input = document.getElementById("chatInput");
+  const text  = input.value.trim();
+  if (!text) return;
+
+  const btn = document.querySelector(".chat-send-btn");
+  btn.disabled = true;
+  input.value  = "";
+
+  try {
+    const res = await fetch(`${API}/chat`, {
+      method:  "POST",
+      headers: jsonHeaders(),
+      body:    JSON.stringify({ text }),
+    });
+    const msg = await res.json();
+    chatMessages.push(msg);
+    renderChat();
+    scrollChatToBottom();
+  } catch (e) { console.error("Send failed:", e); input.value = text; }
+  finally { btn.disabled = false; }
+}
+
+function toggleChat() {
+  chatMinimized = !chatMinimized;
+  const panel = document.getElementById("chatPanel");
+  const btn   = document.getElementById("chatMinBtn");
+  panel.classList.toggle("minimized", chatMinimized);
+  btn.textContent = chatMinimized ? "▲" : "▼";
+  if (!chatMinimized) {
+    chatUnread = 0;
+    document.getElementById("chatBadge").style.display = "none";
+    scrollChatToBottom();
+  }
+}
+
+function isChatAtBottom() {
+  const el = document.getElementById("chatMessages");
+  if (!el) return true;
+  return el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+}
+
+function scrollChatToBottom() {
+  const el = document.getElementById("chatMessages");
+  if (el) el.scrollTop = el.scrollHeight;
+}
+
+function formatChatTime(iso) {
+  const d    = new Date(iso);
+  const now  = new Date();
+  const diff = now - d;
+  const sameDay = d.toDateString() === now.toDateString();
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (diff < 86400000 && sameDay) return time;
+  return d.toLocaleDateString([], { month: "short", day: "numeric" }) + " " + time;
+}
+
+document.getElementById("chatInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+});
+
 // ── Sort ──────────────────────────────────────────────────────────────────────
 function setSort(mode, el) {
   sortMode = mode;
@@ -811,7 +914,7 @@ async function loadLists() {
   } catch (e) { console.error("Failed to load lists:", e); }
 }
 async function loadAll() {
-  await Promise.all([loadMovies(), loadQueue(), loadLists()]);
+  await Promise.all([loadMovies(), loadQueue(), loadLists(), loadChat()]);
   movies.forEach(m => { if (cardComments[m.movieId] === undefined) fetchComments(m.movieId); });
 }
 function startPolling() {
@@ -853,4 +956,4 @@ function goToPage(page) {
 }
 
 updateAuthUI();
-loadAll().then(startPolling);
+loadAll().then(() => { startPolling(); scrollChatToBottom(); });

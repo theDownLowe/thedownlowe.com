@@ -44,54 +44,80 @@
     </div>
   </div>
 
-  <!-- List dropdown portal (rendered outside cards to avoid overflow clipping) -->
+  <!-- List dropdown portal -->
   <div id="list-dropdown-portal" style="display:none; position:fixed; z-index:400;"></div>
 
-  <div class="app">
+  <!-- Page layout: main content + chat -->
+  <div class="page-wrapper">
 
-    <header class="header">
-      <div class="header-top">
-        <div>
-          <div class="logo">Laylee's <span>Movie</span> Lounge</div>
+    <div class="app">
+
+      <header class="header">
+        <div class="header-top">
+          <div>
+            <div class="logo">the <span>down</span> lowe</div>
+            <p class="tagline">community movie rankings</p>
+          </div>
+          <button class="auth-btn" id="authBtn" onclick="auth ? logout() : openAuthModal()">Sign in</button>
         </div>
-        <button class="auth-btn" id="authBtn" onclick="auth ? logout() : openAuthModal()">Sign in</button>
-      </div>
-    </header>
+      </header>
 
-    <div class="suggest-section" id="suggestSection">
-      <div class="suggest-bar">
-        <div class="search-wrap">
-          <input type="text" id="movieInput" placeholder="Search for a movie..." maxlength="80" autocomplete="off" />
-          <div class="dropdown" id="dropdown"></div>
+      <div class="suggest-section" id="suggestSection">
+        <div class="suggest-bar">
+          <div class="search-wrap">
+            <input type="text" id="movieInput" placeholder="Search for a movie..." maxlength="80" autocomplete="off" />
+            <div class="dropdown" id="dropdown"></div>
+          </div>
+          <button id="addBtn" onclick="addMovie()">+ Add</button>
         </div>
-        <button id="addBtn" onclick="addMovie()">+ Add</button>
+        <div class="preview" id="preview"></div>
+        <div class="locked-msg">Sign in to suggest and vote on movies</div>
       </div>
-      <div class="preview" id="preview"></div>
-      <div class="locked-msg">Sign in to suggest and vote on movies</div>
-    </div>
 
-    <!-- Main tabs -->
-    <div class="main-tab-row">
-      <button class="main-tab active" id="tab-rankings" onclick="switchTab('rankings')">Rankings</button>
-      <button class="main-tab" id="tab-queue"    onclick="switchTab('queue')">Queue</button>
-      <button class="main-tab" id="tab-lists"    onclick="switchTab('lists')">Lists</button>
-    </div>
-
-    <div id="rankingsControls">
-      <div class="tab-row">
-        <button class="tab active" onclick="setSort('score', this)">Top rated</button>
-        <button class="tab" onclick="setSort('new', this)">Newest</button>
+      <!-- Main tabs -->
+      <div class="main-tab-row">
+        <button class="main-tab active" id="tab-rankings" onclick="switchTab('rankings')">Rankings</button>
+        <button class="main-tab" id="tab-queue"    onclick="switchTab('queue')">Queue</button>
+        <button class="main-tab" id="tab-lists"    onclick="switchTab('lists')">Lists</button>
       </div>
-      <div class="sort-label" id="sortLabel">sorted by score</div>
-    </div>
-    <div id="queueControls"  style="display:none"><div class="queue-hint">Drag cards to reorder · changes apply to everyone</div></div>
-    <div id="listsControls"  style="display:none"></div>
 
-    <div class="movie-list" id="movieList">
-      <div class="loading">Loading movies...</div>
+      <div id="rankingsControls">
+        <div class="tab-row">
+          <button class="tab active" onclick="setSort('score', this)">Top rated</button>
+          <button class="tab" onclick="setSort('new', this)">Newest</button>
+        </div>
+        <div class="sort-label" id="sortLabel">sorted by score</div>
+      </div>
+      <div id="queueControls" style="display:none">
+        <div class="queue-hint">Drag cards to reorder · changes apply to everyone</div>
+      </div>
+      <div id="listsControls" style="display:none"></div>
+
+      <div class="movie-list" id="movieList">
+        <div class="loading">Loading movies...</div>
+      </div>
+
+    </div><!-- end .app -->
+
+    <!-- Chat panel -->
+    <div class="chat-panel" id="chatPanel">
+      <div class="chat-header" onclick="toggleChat()">
+        <span class="chat-title">💬 Chat</span>
+        <span class="chat-badge" id="chatBadge" style="display:none"></span>
+        <button class="chat-minimize-btn" id="chatMinBtn">▼</button>
+      </div>
+      <div class="chat-body" id="chatBody">
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-loading">Loading...</div>
+        </div>
+        <div class="chat-input-area">
+          <textarea id="chatInput" class="chat-input" placeholder="Message... (Enter to send)" rows="2" maxlength="500"></textarea>
+          <button class="chat-send-btn" onclick="sendChatMessage()">Send</button>
+        </div>
+      </div>
     </div>
 
-  </div>
+  </div><!-- end .page-wrapper -->
 
   <script src="app.js"></script>
 </body>
