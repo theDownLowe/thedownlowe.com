@@ -44,6 +44,8 @@ let dragSrcId          = null;   // queue drag
 let dragListSrcId      = null;   // list-panel drag
 let dragListMovieSrcId = null;   // movie-within-list drag
 let currentDragListId  = null;   // which list the movie drag is in
+let rankingsPage = 1;
+const PAGE_SIZE  = 20;
 
 const pendingDeletes = new Set();
 const pendingVotes   = new Map();
@@ -548,6 +550,7 @@ function timeAgo(iso) {
 // ── Sort ──────────────────────────────────────────────────────────────────────
 function setSort(mode, el) {
   sortMode = mode;
+  rankingsPage = 1;
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active")); el.classList.add("active");
   document.getElementById("sortLabel").textContent = mode === "score" ? "sorted by score" : "sorted by newest";
   render();
@@ -672,9 +675,22 @@ function render() {
 }
 
 function renderRankings() {
-  const list = document.getElementById("movieList"), items = sorted();
-  if (!items.length) { list.innerHTML = '<div class="empty">No movies yet — sign in and suggest one!</div>'; return; }
-  list.innerHTML = items.map((m, i) => buildCard(m, i + 1, "rankings")).join("");
+  const list  = document.getElementById("movieList");
+  const all   = sorted();
+  const total = all.length;
+  const pages = Math.ceil(total / PAGE_SIZE);
+
+  rankingsPage  = Math.min(rankingsPage, Math.max(1, pages));
+  const start   = (rankingsPage - 1) * PAGE_SIZE;
+  const items   = all.slice(start, start + PAGE_SIZE);
+
+  if (!items.length) {
+    list.innerHTML = '<div class="empty">No movies yet — sign in and suggest one!</div>';
+    return;
+  }
+
+  list.innerHTML = items.map((m, i) => buildCard(m, start + i + 1, "rankings")).join("")
+    + (pages > 1 ? buildPagination(rankingsPage, pages) : "");
   reattachComments();
 }
 
@@ -808,6 +824,32 @@ function startPolling() {
 
 function escHtml(str = "") {
   return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+}
+
+function buildPagination(current, total) {
+  const btn = (label, page, disabled = false, active = false) =>
+    `<button class="page-btn${active ? " active" : ""}" ${disabled ? "disabled" : `onclick="goToPage(${page})"`}>${label}</button>`;
+
+  let nums = "";
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || (i >= current - 2 && i <= current + 2)) {
+      nums += btn(i, i, false, i === current);
+    } else if (i === current - 3 || i === current + 3) {
+      nums += `<span class="page-ellipsis">…</span>`;
+    }
+  }
+
+  return `<div class="pagination">
+    ${btn("← Prev", current - 1, current === 1)}
+    ${nums}
+    ${btn("Next →", current + 1, current === total)}
+  </div>`;
+}
+
+function goToPage(page) {
+  rankingsPage = page;
+  render();
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 updateAuthUI();
