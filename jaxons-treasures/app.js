@@ -282,23 +282,91 @@ async function sell({ itemId } = {}) {
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
         </span>
-        <input type="text" id="sell-search" placeholder="Search item by name…" autocomplete="off"
+        <input type="text" id="sell-search" placeholder="Search items…" autocomplete="off"
                style="padding-left:44px" />
       </div>
     </div>
-    <div id="search-results-wrap"></div>
+    <div id="sell-item-grid"></div>
     <div id="sell-item-area"></div>
   `);
 
   let selectedItem = null;
 
+  // Load and display the in-stock item grid
+  async function loadItemGrid(filter = "") {
+    const grid = document.getElementById("sell-item-grid");
+    if (!grid) return;
+    if (!itemsCache.length) {
+      grid.innerHTML = spinnerHtml();
+      try { const d = await api.getItems(); itemsCache = d.items; } catch {}
+    }
+    const inStock = itemsCache
+      .filter(i => i.quantity > 0)
+      .filter(i => !filter || i.name.toLowerCase().includes(filter.toLowerCase()) ||
+                   (i.category || "").toLowerCase().includes(filter.toLowerCase()));
+
+    if (!inStock.length) {
+      grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📦</div>
+        <p>${filter ? "No items match your search." : "No items in stock."}</p></div>`;
+      return;
+    }
+
+    grid.innerHTML = `
+      <div class="item-list" style="padding-top:4px">
+        ${inStock.map(item => `
+          <div class="sell-grid-item" data-item-id="${item.itemId}">
+            ${item.imageUrl
+              ? `<div class="item-thumb"><img src="${item.imageUrl}" alt="" /></div>`
+              : `<div class="item-thumb">📦</div>`}
+            <div class="item-info">
+              <div class="item-name">${item.name}</div>
+              <div class="item-meta">
+                <span class="item-price">${fmt(item.price)}</span>
+                <span style="margin:0 6px">·</span>
+                <span class="${stockClass(item.quantity)}">${stockLabel(item.quantity)}</span>
+              </div>
+              ${item.category ? `<span class="badge badge-ocean" style="margin-top:4px">${item.category}</span>` : ""}
+            </div>
+          </div>`).join("")}
+      </div>`;
+
+    document.querySelectorAll(".sell-grid-item[data-item-id]").forEach(el => {
+      el.onclick = () => {
+        const item = itemsCache.find(i => i.itemId === el.dataset.itemId);
+        if (item) renderSelectedItem(item);
+      };
+    });
+  }
+
+  // Search filter
+  const searchInput = document.getElementById("sell-search");
+  let searchTimer;
+  searchInput.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      const q = searchInput.value.trim();
+      if (document.getElementById("sell-item-area").innerHTML) {
+        // If an item is selected and user types again, clear selection and go back to grid
+        document.getElementById("sell-item-area").innerHTML = "";
+      }
+      loadItemGrid(q);
+    }, 150);
+  });
+
+  loadItemGrid();
+
   async function renderSelectedItem(item) {
     selectedItem = item;
-    document.getElementById("search-results-wrap").innerHTML = "";
+    document.getElementById("sell-item-grid").innerHTML = "";
     document.getElementById("sell-search").value = item.name;
 
     const area = document.getElementById("sell-item-area");
     area.innerHTML = `
+      <div style="padding:4px 16px 0">
+        <button class="btn btn-ghost" id="sell-back-btn" style="padding:0;color:var(--text-muted);font-size:.85rem">
+          ← Back to items
+        </button>
+      </div>
       <div class="selected-item-card">
         ${item.imageUrl
           ? `<div class="selected-item-img"><img src="${item.imageUrl}" alt="" /></div>`
@@ -342,6 +410,11 @@ async function sell({ itemId } = {}) {
       </div>
     `;
 
+    document.getElementById("sell-back-btn").onclick = () => {
+      area.innerHTML = "";
+      document.getElementById("sell-search").value = "";
+      loadItemGrid();
+    };
     document.getElementById("qty-minus").onclick = () => {
       const inp = document.getElementById("qty-val");
       inp.value = Math.max(1, Number(inp.value) - 1);
@@ -447,54 +520,6 @@ async function sell({ itemId } = {}) {
       toast(`Added to cart`, "success");
     } catch (e) { toast(e.message, "error"); }
   }
-
-  // Search
-  const searchInput = document.getElementById("sell-search");
-  let searchTimer;
-  searchInput.addEventListener("input", () => {
-    clearTimeout(searchTimer);
-    const q = searchInput.value.trim().toLowerCase();
-    if (!q) {
-      document.getElementById("search-results-wrap").innerHTML = "";
-      return;
-    }
-    searchTimer = setTimeout(async () => {
-      if (!itemsCache.length) {
-        try { const d = await api.getItems(); itemsCache = d.items; } catch {}
-      }
-      const results = itemsCache.filter(i =>
-        i.name.toLowerCase().includes(q) ||
-        (i.category || "").toLowerCase().includes(q)
-      ).slice(0, 8);
-
-      if (!results.length) {
-        document.getElementById("search-results-wrap").innerHTML =
-          `<div class="search-results"><div class="search-result-item" style="color:var(--text-muted)">No items found</div></div>`;
-        return;
-      }
-
-      document.getElementById("search-results-wrap").innerHTML = `
-        <div class="search-results">
-          ${results.map(item => `
-            <div class="search-result-item" data-item-id="${item.itemId}">
-              ${item.imageUrl
-                ? `<img src="${item.imageUrl}" style="width:36px;height:36px;border-radius:6px;object-fit:cover" alt="" />`
-                : `<div style="width:36px;height:36px;border-radius:6px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:1.2rem">📦</div>`}
-              <div style="flex:1;min-width:0">
-                <div style="font-weight:600;font-size:.95rem">${item.name}</div>
-                <div style="font-size:.8rem;color:var(--text-muted)">${fmt(item.price)} · ${stockLabel(item.quantity)}</div>
-              </div>
-            </div>`).join("")}
-        </div>`;
-
-      document.querySelectorAll(".search-result-item[data-item-id]").forEach(el => {
-        el.onclick = () => {
-          const item = itemsCache.find(i => i.itemId === el.dataset.itemId);
-          if (item) renderSelectedItem(item);
-        };
-      });
-    }, 200);
-  });
 
   // Auto-load item from QR scan
   if (itemId) {
@@ -717,28 +742,20 @@ function openItemModal(item) {
 }
 
 function openQrModal(item) {
-  const qrUrl = `${window.location.origin}${window.location.pathname}?scan=${item.itemId}`;
+  const qrUrl    = `${window.location.origin}${window.location.pathname}?scan=${item.itemId}`;
+  const qrImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=10&data=${encodeURIComponent(qrUrl)}`;
+
   openModal(`QR — ${item.name}`, `
     <div class="qr-wrap">
-      <div id="qr-canvas"></div>
-      <p style="font-size:.8rem;color:var(--text-muted);text-align:center;word-break:break-all">${qrUrl}</p>
+      <img id="qr-img" src="${qrImgSrc}" width="220" height="220"
+           style="border-radius:8px;border:1px solid var(--border)" alt="QR Code" />
+      <p style="font-size:.75rem;color:var(--text-muted);text-align:center;word-break:break-all;max-width:260px">${qrUrl}</p>
       <button class="btn btn-primary" id="print-qr-btn">🖨️ Print QR Code</button>
     </div>
-    <div class="receipt-wrap no-print" style="padding:0">
-      <p style="font-size:.85rem;color:var(--text-muted);margin-top:8px">
-        Print and attach this QR code to your product. Scanning it opens the sell screen for this item.
-      </p>
-    </div>
+    <p style="font-size:.85rem;color:var(--text-muted);text-align:center;padding:0 8px 8px">
+      Print and attach to your product. Scanning opens the sell screen directly.
+    </p>
   `);
-
-  if (typeof QRCode !== "undefined") {
-    new QRCode(document.getElementById("qr-canvas"), {
-      text:   qrUrl,
-      width:  220,
-      height: 220,
-      correctLevel: QRCode.CorrectLevel.M,
-    });
-  }
 
   document.getElementById("print-qr-btn").onclick = () => {
     const win = window.open("", "_blank");
@@ -749,7 +766,7 @@ function openQrModal(item) {
       </head><body>
       <h2>${item.name}</h2>
       <p>${fmt(item.price)}</p>
-      ${document.querySelector("#qr-canvas img")?.outerHTML || ""}
+      <img src="${qrImgSrc}" width="220" height="220" />
       <p style="margin-top:12px;font-size:10px;word-break:break-all">${qrUrl}</p>
       <script>window.onload=()=>window.print()<\/script>
       </body></html>
@@ -840,7 +857,7 @@ function cartCardHtml(cart) {
         <div>
           <h3>${cart.customerName || "Unnamed Cart"}</h3>
           ${cart.customerEmail ? `<div class="cart-customer">${cart.customerEmail}</div>` : ""}
-          <div class="cart-customer">${cart.lines.length} item${cart.lines.length !== 1 ? "s" : ""} · created ${fmtShortDate(cart.createdAt)}</div>
+          <div class="cart-customer">${cart.lines.reduce((s, l) => s + Number(l.quantity), 0)} item${cart.lines.reduce((s, l) => s + Number(l.quantity), 0) !== 1 ? "s" : ""} · created ${fmtShortDate(cart.createdAt)}</div>
         </div>
         <div class="cart-total">${fmt(cart.total)}</div>
       </div>

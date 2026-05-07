@@ -1,28 +1,28 @@
 /* ── Variables ────────────────────────────────────────────────────────────── */
 :root {
-  --bg:          #FDF8F0;
+  --bg:          #EEF6FC;
   --surface:     #FFFFFF;
-  --border:      #E7E5E4;
-  --primary:     #D97706;
-  --primary-dk:  #B45309;
-  --primary-lt:  #FEF3C7;
-  --secondary:   #7C3AED;
+  --border:      #B6D9F0;
+  --primary:     #0077B6;
+  --primary-dk:  #005F8E;
+  --primary-lt:  #CAE9FF;
+  --secondary:   #0096C7;
   --danger:      #DC2626;
   --danger-lt:   #FEE2E2;
-  --success:     #16A34A;
-  --success-lt:  #DCFCE7;
+  --success:     #0D9488;
+  --success-lt:  #CCFBF1;
   --warning:     #D97706;
   --warning-lt:  #FEF3C7;
-  --text:        #1C1917;
-  --text-muted:  #78716C;
-  --nav-bg:      #1C1917;
-  --nav-active:  #F59E0B;
+  --text:        #03243D;
+  --text-muted:  #4A7FA3;
+  --nav-bg:      #012A4A;
+  --nav-active:  #48CAE4;
   --nav-h:       64px;
   --top-h:       52px;
   --radius:      12px;
   --radius-sm:   8px;
-  --shadow:      0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
-  --shadow-md:   0 4px 6px rgba(0,0,0,.1), 0 2px 4px rgba(0,0,0,.06);
+  --shadow:      0 1px 3px rgba(0,60,100,.1), 0 1px 2px rgba(0,60,100,.06);
+  --shadow-md:   0 4px 12px rgba(0,60,100,.15), 0 2px 4px rgba(0,60,100,.08);
 }
 
 /* ── Reset ────────────────────────────────────────────────────────────────── */
@@ -65,6 +65,7 @@ body {
   font-weight: 700;
   letter-spacing: 0.02em;
   color: var(--nav-active);
+  text-shadow: 0 0 20px rgba(72,202,228,.4);
 }
 
 .icon-btn {
@@ -345,10 +346,11 @@ textarea { padding: 12px 14px; min-height: 80px; resize: vertical; line-height: 
   text-transform: uppercase;
   letter-spacing: .04em;
 }
-.badge-amber   { background: var(--primary-lt); color: var(--primary-dk); }
-.badge-green   { background: var(--success-lt); color: var(--success); }
-.badge-red     { background: var(--danger-lt);  color: var(--danger); }
-.badge-purple  { background: #EDE9FE;            color: #6D28D9; }
+.badge-amber   { background: var(--warning-lt);  color: #92400E; }
+.badge-ocean   { background: var(--primary-lt);  color: var(--primary-dk); }
+.badge-green   { background: var(--success-lt);  color: var(--success); }
+.badge-red     { background: var(--danger-lt);   color: var(--danger); }
+.badge-purple  { background: #E0F2FE;             color: #0369A1; }
 
 /* ── Section Headers ──────────────────────────────────────────────────────── */
 .section-header {
@@ -503,6 +505,7 @@ textarea { padding: 12px 14px; min-height: 80px; resize: vertical; line-height: 
   justify-content: center;
   min-height: calc(100vh - var(--top-h));
   padding: 32px 24px;
+  background: linear-gradient(160deg, #012A4A 0%, #0077B6 60%, #48CAE4 100%);
 }
 
 .login-card {
@@ -739,7 +742,7 @@ textarea { padding: 12px 14px; min-height: 80px; resize: vertical; line-height: 
   background: var(--primary);
   color: #FFF;
   border: none;
-  box-shadow: 0 4px 12px rgba(217,119,6,.45);
+  box-shadow: 0 4px 12px rgba(0,119,182,.45);
   display: flex;
   align-items: center;
   justify-content: center;
