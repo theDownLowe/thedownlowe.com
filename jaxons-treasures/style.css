@@ -416,7 +416,37 @@ textarea { padding: 12px 14px; min-height: 80px; resize: vertical; line-height: 
 .cart-line-name { flex: 1; }
 .cart-line-qty  { color: var(--text-muted); font-size: .85rem; min-width: 50px; text-align: right; }
 .cart-line-price { font-weight: 600; min-width: 60px; text-align: right; }
-.cart-line-del  { background: none; border: none; color: var(--danger); cursor: pointer; padding: 4px; font-size: 1.1rem; }
+.cart-line-del  { background: none; border: none; color: var(--danger); cursor: pointer; padding: 4px; font-size: 1.1rem; flex-shrink: 0; }
+
+.cart-line-qty-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.cart-qty-btn {
+  width: 32px;
+  height: 32px;
+  background: var(--bg);
+  border: none;
+  font-size: 1.1rem;
+  color: var(--primary);
+  cursor: pointer;
+  touch-action: manipulation;
+  line-height: 1;
+}
+.cart-qty-btn:active { background: var(--primary-lt); }
+.cart-line-qty-val {
+  min-width: 28px;
+  text-align: center;
+  font-size: .9rem;
+  font-weight: 700;
+  background: var(--surface);
+  padding: 0 4px;
+}
 
 .cart-actions {
   display: flex;

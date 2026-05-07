@@ -261,14 +261,8 @@ async function dashboard() {
         </div>` : `
         <div class="empty-state">
           <div class="empty-state-icon">📊</div>
-          <p>No sales today yet. Scan a QR code or tap Sell to record a sale.</p>
+          <p>No sales today yet. Tap any item in Inventory to record a sale.</p>
         </div>`}
-
-      <div class="section" style="padding-bottom:80px">
-        <button class="btn btn-primary btn-full btn-lg" onclick="navigate('sell')">
-          Quick Sell
-        </button>
-      </div>
     `);
   } catch (e) {
     setView(`<div class="empty-state"><p>Error loading dashboard: ${e.message}</p></div>`);
@@ -374,29 +368,13 @@ function openSellModal(item) {
       document.querySelectorAll("[data-cart-id]").forEach(b => {
         b.onclick = async () => { await addLineToCart(b.dataset.cartId, line); closeModal(); };
       });
-      document.getElementById("new-cart-btn").onclick = () => {
-        closeModal();
-        openModal("New Cart", `
-          <div class="form-group">
-            <label>Customer Name <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
-            <input type="text" id="nc-name" placeholder="e.g. Jane" />
-          </div>
-          <div class="form-group">
-            <label>Customer Email <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
-            <input type="email" id="nc-email" placeholder="jane@example.com" />
-          </div>
-          <button class="btn btn-primary btn-full" id="nc-create">Create Cart</button>
-        `);
-        document.getElementById("nc-create").onclick = async () => {
-          try {
-            const { cart } = await api.createCart({
-              customerName:  document.getElementById("nc-name").value,
-              customerEmail: document.getElementById("nc-email").value,
-            });
-            await addLineToCart(cart.cartId, line);
-            closeModal();
-          } catch (e) { toast(e.message, "error"); }
-        };
+      document.getElementById("new-cart-btn").onclick = async () => {
+        try {
+          const { cart } = await api.createCart({});
+          await addLineToCart(cart.cartId, line);
+          closeModal();
+          toast("Added to new cart", "success");
+        } catch (e) { toast(e.message, "error"); }
       };
     };
   }
@@ -503,6 +481,14 @@ function renderInventoryList(items, filter = "") {
 
 function openItemModal(item) {
   const isNew = !item;
+  let pendingImageFile = null; // holds file for new items until after creation
+
+  const uploadSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+       stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+    <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+  </svg>`;
+
   openModal(isNew ? "Add Item" : "Edit Item", `
     <div class="form-group">
       <label>Name *</label>
@@ -524,52 +510,54 @@ function openItemModal(item) {
       <label>Description</label>
       <textarea id="f-desc" placeholder="Optional description">${item?.description || ""}</textarea>
     </div>
-    ${item ? `
-      <div class="form-group">
-        <label>Product Image</label>
-        ${item.imageUrl
-          ? `<img src="${item.imageUrl}" style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin-bottom:8px" />`
-          : ""}
-        <label class="img-upload-label">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-               stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-          </svg>
-          ${item.imageUrl ? "Replace image" : "Upload image"}
-          <input type="file" id="f-image" accept="image/*" />
-        </label>
-        <p id="upload-status" style="font-size:.8rem;color:var(--text-muted);margin-top:4px"></p>
-      </div>` : ""}
+    <div class="form-group">
+      <label>Product Image</label>
+      ${item?.imageUrl
+        ? `<img id="f-img-preview" src="${item.imageUrl}" style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin-bottom:8px" />`
+        : `<img id="f-img-preview" style="display:none;width:100%;max-height:180px;object-fit:cover;border-radius:8px;margin-bottom:8px" />`}
+      <label class="img-upload-label">
+        ${uploadSvg}
+        <span id="f-img-label">${item?.imageUrl ? "Replace image" : "Upload image"}</span>
+        <input type="file" id="f-image" accept="image/*" />
+      </label>
+      <p id="upload-status" style="font-size:.8rem;color:var(--text-muted);margin-top:4px"></p>
+    </div>
     <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
       <button class="btn btn-primary btn-full" id="save-item-btn">${isNew ? "Add Item" : "Save Changes"}</button>
       ${!isNew ? `<button class="btn btn-danger btn-full" id="delete-item-btn">Delete Item</button>` : ""}
     </div>
   `);
 
-  if (item) {
-    const fileInput = document.getElementById("f-image");
-    if (fileInput) {
-      fileInput.addEventListener("change", async () => {
-        const file = fileInput.files[0];
-        if (!file) return;
-        const status = document.getElementById("upload-status");
-        status.textContent = "Uploading…";
-        try {
-          const { uploadUrl, imageUrl } = await api.getImageUrl(item.itemId);
-          await fetch(uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": "image/jpeg" } });
-          await api.updateItem(item.itemId, { imageUrl });
-          const idx = itemsCache.findIndex(i => i.itemId === item.itemId);
-          if (idx > -1) itemsCache[idx] = { ...itemsCache[idx], imageUrl };
-          status.textContent = "✓ Image uploaded";
-          status.style.color = "var(--success)";
-        } catch (e) {
-          status.textContent = "Upload failed: " + e.message;
-          status.style.color = "var(--danger)";
-        }
-      });
+  const fileInput = document.getElementById("f-image");
+  fileInput.addEventListener("change", async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    const preview = document.getElementById("f-img-preview");
+    // Show local preview immediately
+    preview.src   = URL.createObjectURL(file);
+    preview.style.display = "";
+    document.getElementById("f-img-label").textContent = "Replace image";
+
+    if (!isNew) {
+      // Existing item — upload now
+      const status = document.getElementById("upload-status");
+      status.textContent = "Uploading…"; status.style.color = "var(--text-muted)";
+      try {
+        const { uploadUrl, imageUrl } = await api.getImageUrl(item.itemId);
+        await fetch(uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": "image/jpeg" } });
+        await api.updateItem(item.itemId, { imageUrl });
+        const idx = itemsCache.findIndex(i => i.itemId === item.itemId);
+        if (idx > -1) itemsCache[idx] = { ...itemsCache[idx], imageUrl };
+        status.textContent = "✓ Uploaded"; status.style.color = "var(--success)";
+      } catch (e) {
+        status.textContent = "Upload failed: " + e.message; status.style.color = "var(--danger)";
+      }
+    } else {
+      // New item — hold file until after item is created
+      pendingImageFile = file;
+      document.getElementById("upload-status").textContent = "Image will upload after saving.";
     }
-  }
+  });
 
   document.getElementById("save-item-btn").onclick = async () => {
     const name  = document.getElementById("f-name").value.trim();
@@ -584,6 +572,16 @@ function openItemModal(item) {
     try {
       if (isNew) {
         const { item: newItem } = await api.createItem({ name, price, quantity: qty, category: cat, description: desc });
+        // Upload pending image if one was selected
+        if (pendingImageFile) {
+          try {
+            btn.textContent = "Uploading image…";
+            const { uploadUrl, imageUrl } = await api.getImageUrl(newItem.itemId);
+            await fetch(uploadUrl, { method: "PUT", body: pendingImageFile, headers: { "Content-Type": "image/jpeg" } });
+            await api.updateItem(newItem.itemId, { imageUrl });
+            newItem.imageUrl = imageUrl;
+          } catch { /* image upload failure is non-fatal */ }
+        }
         itemsCache.push(newItem);
         itemsCache.sort((a, b) => a.name.localeCompare(b.name));
         toast(`"${name}" added`, "success");
@@ -696,27 +694,10 @@ function renderCartsList(cartList) {
 
   function bindNewCart() {
     const handler = async () => {
-      openModal("New Cart", `
-        <div class="form-group">
-          <label>Customer Name <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
-          <input type="text" id="nc-name" placeholder="e.g. Jane" />
-        </div>
-        <div class="form-group">
-          <label>Customer Email <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
-          <input type="email" id="nc-email" placeholder="jane@example.com" />
-        </div>
-        <button class="btn btn-primary btn-full" id="nc-create-btn">Create Cart</button>
-      `);
-      document.getElementById("nc-create-btn").onclick = async () => {
-        try {
-          const { cart } = await api.createCart({
-            customerName:  document.getElementById("nc-name").value,
-            customerEmail: document.getElementById("nc-email").value,
-          });
-          closeModal();
-          openCartDetail(cart);
-        } catch (e) { toast(e.message, "error"); }
-      };
+      try {
+        const { cart } = await api.createCart({});
+        openCartDetail(cart);
+      } catch (e) { toast(e.message, "error"); }
     };
     document.getElementById("new-cart-top-btn").onclick = handler;
     document.getElementById("carts-fab").onclick = handler;
@@ -750,16 +731,8 @@ function cartCardHtml(cart) {
 }
 
 function openCartDetail(cart) {
-  const hasEmail = !!cart.customerEmail;
-
   openModal(cart.customerName ? `Cart — ${cart.customerName}` : "Cart", `
     <div class="receipt-wrap" style="padding:0 0 8px">
-      ${cart.customerName || cart.customerEmail ? `
-        <p style="font-size:.9rem;color:var(--text-muted);margin-bottom:12px">
-          ${cart.customerName ? `<strong>${cart.customerName}</strong>` : ""}
-          ${cart.customerEmail ? ` &lt;${cart.customerEmail}&gt;` : ""}
-        </p>` : ""}
-
       <div id="cart-lines-area">
         ${renderCartLinesHtml(cart)}
       </div>
@@ -767,11 +740,20 @@ function openCartDetail(cart) {
       <div style="margin:12px 0">
         <div class="form-group">
           <label>Add item to cart</label>
-          <div style="display:flex;gap:8px">
-            <input type="text" id="cart-item-search" placeholder="Search by name…" style="flex:1" autocomplete="off"/>
-          </div>
+          <input type="text" id="cart-item-search" placeholder="Search by name…" style="width:100%" autocomplete="off"/>
         </div>
         <div id="cart-search-results"></div>
+      </div>
+
+      <div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:12px">
+        <div class="form-group" style="margin-bottom:10px">
+          <label>Customer Name <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
+          <input type="text" id="cart-cust-name" value="${cart.customerName || ""}" placeholder="e.g. Jane" />
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Customer Email <span style="font-weight:400;color:var(--text-muted)">(for emailing receipt)</span></label>
+          <input type="email" id="cart-cust-email" value="${cart.customerEmail || ""}" placeholder="jane@example.com" />
+        </div>
       </div>
 
       <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
@@ -781,7 +763,8 @@ function openCartDetail(cart) {
         </button>
         <div style="display:flex;gap:10px">
           <button class="btn btn-secondary" style="flex:1" id="receipt-btn">🖨️ Receipt</button>
-          ${hasEmail ? `<button class="btn btn-secondary" style="flex:1" id="email-btn">📧 Email</button>` : ""}
+          <button class="btn btn-secondary" style="flex:1" id="email-btn"
+            ${!cart.customerEmail ? "disabled title=\"Enter a customer email above\"" : ""}>📧 Email</button>
           <button class="btn btn-danger" style="flex:1" id="cancel-cart-btn">Cancel</button>
         </div>
       </div>
@@ -808,6 +791,22 @@ function openCartDetail(cart) {
           rebindLines();
         } catch (e) { toast(e.message, "error"); }
       };
+    });
+
+    async function changeLineQty(idx, delta) {
+      const lines   = currentCart.lines.map((l, i) => i === idx ? { ...l, quantity: Math.max(1, l.quantity + delta) } : l);
+      try {
+        const { cart: updated } = await api.updateCart(currentCart.cartId, { lines });
+        currentCart = updated;
+        rebindLines();
+      } catch (e) { toast(e.message, "error"); }
+    }
+
+    document.querySelectorAll("[data-qty-down]").forEach(btn => {
+      btn.onclick = () => changeLineQty(Number(btn.dataset.qtyDown), -1);
+    });
+    document.querySelectorAll("[data-qty-up]").forEach(btn => {
+      btn.onclick = () => changeLineQty(Number(btn.dataset.qtyUp), +1);
     });
   }
 
@@ -871,11 +870,35 @@ function openCartDetail(cart) {
     }
   };
 
-  document.getElementById("receipt-btn").onclick = () => printReceipt(currentCart);
+  // Name/email: save on blur, enable email button live
+  const nameInput  = document.getElementById("cart-cust-name");
+  const emailInput = document.getElementById("cart-cust-email");
+  const emailBtn   = document.getElementById("email-btn");
 
-  if (hasEmail) {
-    document.getElementById("email-btn").onclick = () => emailReceipt(currentCart);
+  async function saveCustomerInfo() {
+    const customerName  = nameInput.value.trim();
+    const customerEmail = emailInput.value.trim();
+    if (customerName === (currentCart.customerName || "") &&
+        customerEmail === (currentCart.customerEmail || "")) return;
+    try {
+      const { cart: updated } = await api.updateCart(currentCart.cartId, { customerName, customerEmail });
+      currentCart = updated;
+      emailBtn.disabled = !customerEmail;
+      emailBtn.title    = customerEmail ? "" : "Enter a customer email above";
+    } catch (e) { toast(e.message, "error"); }
   }
+
+  nameInput.addEventListener("blur",  saveCustomerInfo);
+  emailInput.addEventListener("blur", saveCustomerInfo);
+  emailInput.addEventListener("input", () => {
+    emailBtn.disabled = !emailInput.value.trim();
+    emailBtn.title    = emailInput.value.trim() ? "" : "Enter a customer email above";
+  });
+
+  document.getElementById("receipt-btn").onclick = () => printReceipt(currentCart);
+  emailBtn.onclick = () => {
+    if (currentCart.customerEmail) emailReceipt(currentCart);
+  };
 
   document.getElementById("cancel-cart-btn").onclick = async () => {
     if (!confirm("Cancel this cart?")) return;
@@ -896,8 +919,14 @@ function renderCartLinesHtml(cart) {
     <div class="cart-lines">
       ${cart.lines.map((l, i) => `
         <div class="cart-line">
-          <span class="cart-line-name">${l.name}</span>
-          <span class="cart-line-qty">×${l.quantity}</span>
+          <span class="cart-line-name">${l.name}<br>
+            <span style="font-size:.78rem;color:var(--text-muted)">${fmt(l.price)} each</span>
+          </span>
+          <div class="cart-line-qty-ctrl">
+            <button class="cart-qty-btn" data-qty-down="${i}">−</button>
+            <span class="cart-line-qty-val">${l.quantity}</span>
+            <button class="cart-qty-btn" data-qty-up="${i}">+</button>
+          </div>
           <span class="cart-line-price">${fmt(l.price * l.quantity)}</span>
           <button class="cart-line-del" data-remove-line="${i}" title="Remove">×</button>
         </div>`).join("")}
@@ -1091,7 +1120,7 @@ function openEditTxModal(tx, date) {
   };
 
   document.getElementById("delete-tx-btn").onclick = async () => {
-    if (!confirm("Delete this transaction? (Inventory count is NOT automatically restored)")) return;
+    if (!confirm("Delete this transaction? The sold quantity will be returned to inventory.")) return;
     try {
       await api.deleteTransaction(tx.transactionId);
       toast("Deleted", "success");
