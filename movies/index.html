@@ -32,6 +32,21 @@
     </div>
   </div>
 
+  <!-- Create list modal -->
+  <div class="auth-overlay" id="createListModal">
+    <div class="auth-modal">
+      <h2>Create a new list</h2>
+      <input type="text" id="newListTitle" placeholder="List name" maxlength="60" />
+      <textarea id="newListDesc" placeholder="Description (optional)" rows="3" style="padding:10px 12px;border:1px solid #d0cdc8;border-radius:8px;font-size:0.95rem;font-family:inherit;resize:vertical;outline:none;"></textarea>
+      <div class="auth-error" id="createListError"></div>
+      <button class="auth-submit" onclick="submitCreateList()">Create list</button>
+      <p class="auth-toggle"><a href="#" onclick="closeCreateListModal(); return false;">Cancel</a></p>
+    </div>
+  </div>
+
+  <!-- List dropdown portal (rendered outside cards to avoid overflow clipping) -->
+  <div id="list-dropdown-portal" style="display:none; position:fixed; z-index:400;"></div>
+
   <div class="app">
 
     <header class="header">
@@ -55,25 +70,22 @@
       <div class="locked-msg">Sign in to suggest and vote on movies</div>
     </div>
 
-    <!-- Main tabs: Rankings / Queue -->
+    <!-- Main tabs -->
     <div class="main-tab-row">
       <button class="main-tab active" id="tab-rankings" onclick="switchTab('rankings')">Rankings</button>
-      <button class="main-tab" id="tab-queue" onclick="switchTab('queue')">Queue</button>
+      <button class="main-tab" id="tab-queue"    onclick="switchTab('queue')">Queue</button>
+      <button class="main-tab" id="tab-lists"    onclick="switchTab('lists')">Lists</button>
     </div>
 
-    <!-- Sort controls (Rankings only) -->
     <div id="rankingsControls">
       <div class="tab-row">
-        <button class="tab active" onclick="setSort('score', this)">Top voted</button>
+        <button class="tab active" onclick="setSort('score', this)">Top rated</button>
         <button class="tab" onclick="setSort('new', this)">Newest</button>
       </div>
-      <div class="sort-label" id="sortLabel">sorted by vote score</div>
+      <div class="sort-label" id="sortLabel">sorted by score</div>
     </div>
-
-    <!-- Queue hint (Queue only, hidden by default) -->
-    <div id="queueControls" style="display:none">
-      <div class="queue-hint">Drag cards to reorder · changes apply to everyone</div>
-    </div>
+    <div id="queueControls"  style="display:none"><div class="queue-hint">Drag cards to reorder · changes apply to everyone</div></div>
+    <div id="listsControls"  style="display:none"></div>
 
     <div class="movie-list" id="movieList">
       <div class="loading">Loading movies...</div>
