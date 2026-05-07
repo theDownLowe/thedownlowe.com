@@ -753,3 +753,25 @@ textarea { padding: 12px 14px; min-height: 80px; resize: vertical; line-height: 
   color: var(--primary);
   border-bottom-color: var(--primary);
 }
+
+/* ── Deal cards ───────────────────────────────────────────────────────────── */
+.deal-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+
+.deal-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--primary-lt);
+  border: 1.5px solid var(--primary);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}

@@ -6,6 +6,7 @@ const API_BASE = "https://pujum14h27.execute-api.us-west-2.amazonaws.com/jaxons-
 let token       = localStorage.getItem("jt_token");
 let activeView  = "dashboard";
 let itemsCache  = [];
+let dealsCache  = [];
 
 /* ── API Client ───────────────────────────────────────────────────────────── */
 async function apiFetch(method, path, data) {
@@ -45,6 +46,11 @@ const api = {
 
   getRevenueToday: ()          => apiFetch("GET",  "/revenue/today"),
   getRevenue:      ()          => apiFetch("GET",  "/revenue"),
+
+  getDeals:        ()          => apiFetch("GET",  "/deals"),
+  createDeal:      (d)         => apiFetch("POST", "/deals", d),
+  updateDeal:      (id, d)     => apiFetch("PUT",  `/deals/${id}`, d),
+  deleteDeal:      (id)        => apiFetch("DELETE",`/deals/${id}`),
 };
 
 /* ── Toast ────────────────────────────────────────────────────────────────── */
@@ -283,7 +289,7 @@ function openSellModal(item) {
         <div style="flex:1;min-width:0">
           <div class="selected-item-price">${fmt(current.price)}</div>
           <div class="selected-item-stock ${stockClass(current.quantity)}">${stockLabel(current.quantity)}</div>
-          ${current.category ? `<span class="badge badge-ocean">${current.category}</span>` : ""}
+          ${current.category ? current.category.split(",").map(c=>c.trim()).filter(Boolean).map(c=>`<span class="badge badge-ocean" style="margin-right:4px">${c}</span>`).join("") : ""}
         </div>
       </div>
 
@@ -335,11 +341,8 @@ function openSellModal(item) {
         });
         const idx = itemsCache.findIndex(i => i.itemId === current.itemId);
         if (idx > -1) itemsCache[idx] = { ...itemsCache[idx], quantity: remainingStock };
-        current = { ...current, quantity: remainingStock };
         toast(`Sold ${qty}× ${current.name} for ${fmt(transaction.total)}`, "success");
-        // Re-render modal body with updated stock
-        document.querySelector("#modal-content .modal-body").innerHTML = bodyHtml();
-        rebind();
+        closeModal();
       } catch (e) {
         toast(e.message, "error");
         btn.disabled = false; btn.textContent = "⚡ Quick Sell";
@@ -415,8 +418,12 @@ function renderInventoryList(items, filter = "") {
     : items;
 
   setView(`
-    <div class="section" style="padding-bottom:8px">
+    <div class="section" style="padding-bottom:4px">
       <input type="text" id="inv-search" placeholder="Search inventory…" value="${filter}" />
+    </div>
+    <div style="display:flex;gap:8px;padding:0 16px 10px">
+      <button class="btn btn-secondary" style="flex:1;min-height:38px;font-size:.82rem" id="inv-import-btn">📥 Bulk Import</button>
+      <button class="btn btn-secondary" style="flex:1;min-height:38px;font-size:.82rem" id="inv-deals-btn">🏷️ Deals</button>
     </div>
     ${filtered.length ? `
       <div class="item-list" style="padding-top:4px;padding-bottom:80px">
@@ -430,7 +437,7 @@ function renderInventoryList(items, filter = "") {
                 <span style="margin:0 6px">·</span>
                 <span class="${stockClass(item.quantity)}">${stockLabel(item.quantity)}</span>
               </div>
-              ${item.category ? `<div style="margin-top:4px"><span class="badge badge-amber">${item.category}</span></div>` : ""}
+              ${item.category ? `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">${item.category.split(",").map(c=>c.trim()).filter(Boolean).map(c=>`<span class="badge badge-ocean">${c}</span>`).join("")}</div>` : ""}
             </div>
             <div class="item-actions" onclick="event.stopPropagation()">
               <button class="btn btn-ghost" style="padding:4px 8px" data-edit="${item.itemId}">Edit</button>
@@ -455,7 +462,9 @@ function renderInventoryList(items, filter = "") {
     renderInventoryList(itemsCache, e.target.value);
   });
 
-  document.getElementById("inv-add-btn").onclick = () => openItemModal(null);
+  document.getElementById("inv-add-btn").onclick    = () => openItemModal(null);
+  document.getElementById("inv-import-btn").onclick = () => openBulkUploadModal();
+  document.getElementById("inv-deals-btn").onclick  = () => openDealsManagerModal();
 
   document.querySelectorAll("[data-edit]").forEach(btn => {
     btn.onclick = () => {
@@ -503,8 +512,8 @@ function openItemModal(item) {
       <input type="number" id="f-qty" value="${item?.quantity ?? 0}" min="0" step="1" />
     </div>
     <div class="form-group">
-      <label>Category</label>
-      <input type="text" id="f-cat" value="${item?.category || ""}" placeholder="e.g. Jewelry, Candles" />
+      <label>Categories <span style="font-weight:400;color:var(--text-muted)">(comma-separated)</span></label>
+      <input type="text" id="f-cat" value="${item?.category || ""}" placeholder="e.g. jumbo, hair-clips, accessories" />
     </div>
     <div class="form-group">
       <label>Description</label>
@@ -745,6 +754,8 @@ function openCartDetail(cart) {
         <div id="cart-search-results"></div>
       </div>
 
+      <div id="cart-deals-area"></div>
+
       <div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:12px">
         <div class="form-group" style="margin-bottom:10px">
           <label>Customer Name <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
@@ -794,7 +805,14 @@ function openCartDetail(cart) {
     });
 
     async function changeLineQty(idx, delta) {
-      const lines   = currentCart.lines.map((l, i) => i === idx ? { ...l, quantity: Math.max(1, l.quantity + delta) } : l);
+      const line     = currentCart.lines[idx];
+      const stock    = itemsCache.find(i => i.itemId === line.itemId)?.quantity ?? Infinity;
+      const newQty   = Math.min(stock, Math.max(1, line.quantity + delta));
+      if (newQty === line.quantity) {
+        if (delta > 0) toast(`Only ${stock} in stock`, "error");
+        return;
+      }
+      const lines = currentCart.lines.map((l, i) => i === idx ? { ...l, quantity: newQty } : l);
       try {
         const { cart: updated } = await api.updateCart(currentCart.cartId, { lines });
         currentCart = updated;
@@ -807,6 +825,50 @@ function openCartDetail(cart) {
     });
     document.querySelectorAll("[data-qty-up]").forEach(btn => {
       btn.onclick = () => changeLineQty(Number(btn.dataset.qtyUp), +1);
+    });
+
+    rebindDeals();
+  }
+
+  async function rebindDeals() {
+    const area = document.getElementById("cart-deals-area");
+    if (!area) return;
+    if (!dealsCache.length) {
+      try { const { deals } = await api.getDeals(); dealsCache = deals; } catch { return; }
+    }
+    const applicable = getApplicableDeals(currentCart);
+    if (!applicable.length) { area.innerHTML = ""; return; }
+
+    area.innerHTML = `
+      <div style="border-top:1px solid var(--border);padding:12px 0 4px">
+        <div style="font-weight:700;font-size:.88rem;margin-bottom:8px;color:var(--primary)">🏷️ Available Deals</div>
+        ${applicable.map((info, idx) => `
+          <div class="deal-suggestion" data-deal-idx="${idx}">
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:.88rem">${info.deal.name}</div>
+              <div style="font-size:.8rem;color:var(--text-muted)">
+                ${info.totalQty} items · ${fmt(info.curTotal)} → <strong style="color:var(--success)">${fmt(info.dealTotal)}</strong>
+                <span style="color:var(--danger);margin-left:4px">Save ${fmt(info.savings)}</span>
+              </div>
+            </div>
+            <button class="btn btn-primary" style="min-height:32px;padding:0 12px;font-size:.82rem" data-apply-deal="${idx}">Apply</button>
+          </div>`).join("")}
+      </div>`;
+
+    area.querySelectorAll("[data-apply-deal]").forEach(btn => {
+      btn.onclick = async () => {
+        const info = applicable[Number(btn.dataset.applyDeal)];
+        const matchIds = new Set(info.matchingLines.map(l => `${l.itemId}|${l.price}`));
+        const lines = currentCart.lines.map(l =>
+          matchIds.has(`${l.itemId}|${l.price}`) ? { ...l, price: Number(info.bestTier.pricePerItem) } : l
+        );
+        try {
+          const { cart: updated } = await api.updateCart(currentCart.cartId, { lines });
+          currentCart = updated;
+          toast(`Deal applied — ${fmt(info.savings)} saved!`, "success");
+          rebindLines();
+        } catch (e) { toast(e.message, "error"); }
+      };
     });
   }
 
@@ -1128,6 +1190,308 @@ function openEditTxModal(tx, date) {
       loadHistory(date);
     } catch (e) { toast(e.message, "error"); }
   };
+}
+
+/* ── Deals utilities ──────────────────────────────────────────────────────── */
+function getApplicableDeals(cart) {
+  const applicable = [];
+  for (const deal of dealsCache) {
+    if (!deal.active) continue;
+    const matchingLines = cart.lines.filter(l => {
+      const item = itemsCache.find(i => i.itemId === l.itemId);
+      const cats = (item?.category || "").split(",").map(c => c.trim().toLowerCase()).filter(Boolean);
+      return cats.includes((deal.category || "").trim().toLowerCase());
+    });
+    if (!matchingLines.length) continue;
+    const totalQty  = matchingLines.reduce((s, l) => s + Number(l.quantity), 0);
+    const tiers     = [...(deal.tiers || [])].sort((a, b) => Number(b.minQty) - Number(a.minQty));
+    const bestTier  = tiers.find(t => totalQty >= Number(t.minQty));
+    if (!bestTier) continue;
+    const curTotal  = matchingLines.reduce((s, l) => s + Number(l.price) * Number(l.quantity), 0);
+    const dealTotal = totalQty * Number(bestTier.pricePerItem);
+    const savings   = curTotal - dealTotal;
+    if (savings < 0.005) continue;
+    applicable.push({ deal, matchingLines, totalQty, bestTier, curTotal, dealTotal, savings });
+  }
+  return applicable;
+}
+
+/* ── Deals manager ────────────────────────────────────────────────────────── */
+async function openDealsManagerModal() {
+  if (!dealsCache.length) {
+    try { const { deals } = await api.getDeals(); dealsCache = deals; } catch {}
+  }
+  openModal("Deals", `
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${dealsCache.length ? dealsCache.map(deal => `
+        <div class="deal-card">
+          <div style="flex:1">
+            <div style="font-weight:700">${deal.name}</div>
+            <div style="font-size:.82rem;color:var(--text-muted)">
+              Category: <strong>${deal.category}</strong>
+              · ${(deal.tiers || []).length} tier${(deal.tiers || []).length !== 1 ? "s" : ""}
+            </div>
+            <div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">
+              ${(deal.tiers || []).sort((a,b)=>Number(a.minQty)-Number(b.minQty)).map(t=>`${t.minQty}+: ${fmt(t.pricePerItem)}/ea`).join(" · ")}
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="badge ${deal.active ? "badge-green" : ""}" style="${deal.active ? "" : "background:var(--danger);color:#fff"}">${deal.active ? "Active" : "Off"}</span>
+            <button class="btn btn-ghost" style="min-height:32px;padding:2px 10px" data-edit-deal="${deal.dealId}">Edit</button>
+          </div>
+        </div>`).join("") : `
+      <div class="empty-state" style="padding:32px 0">
+        <div class="empty-state-icon">🏷️</div>
+        <p>No deals yet. Create one to set category-based bundle pricing.</p>
+      </div>`}
+    </div>
+    <button class="btn btn-primary btn-full" style="margin-top:16px" id="deals-new-btn">+ New Deal</button>
+  `);
+
+  document.getElementById("deals-new-btn").onclick = () => openDealModal(null);
+  document.querySelectorAll("[data-edit-deal]").forEach(btn => {
+    btn.onclick = () => {
+      const deal = dealsCache.find(d => d.dealId === btn.dataset.editDeal);
+      if (deal) openDealModal(deal);
+    };
+  });
+}
+
+function openDealModal(deal) {
+  const isNew = !deal;
+  const existingTiers = deal?.tiers?.length ? deal.tiers : [{ minQty: 1, pricePerItem: "" }];
+
+  function tierRowHtml(t, i) {
+    return `
+      <div class="deal-tier-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px">
+        <div style="flex:1">
+          <label style="font-size:.76rem;color:var(--text-muted)">Min Qty</label>
+          <input type="number" class="tier-minqty" value="${t.minQty ?? 1}" min="1" step="1" />
+        </div>
+        <div style="flex:1">
+          <label style="font-size:.76rem;color:var(--text-muted)">Price Each ($)</label>
+          <input type="number" class="tier-price" value="${t.pricePerItem ?? ""}" min="0" step="0.01" placeholder="0.00" />
+        </div>
+        <button class="btn btn-ghost" style="color:var(--danger);padding:0 8px;min-height:40px;margin-bottom:0" data-rm-tier>✕</button>
+      </div>`;
+  }
+
+  openModal(isNew ? "New Deal" : "Edit Deal", `
+    <div class="form-group">
+      <label>Deal Name *</label>
+      <input type="text" id="d-name" value="${deal?.name || ""}" placeholder="e.g. 3 Jumbo Clips for $30" />
+    </div>
+    <div class="form-group">
+      <label>Category Tag * <span style="font-weight:400;color:var(--text-muted)">(single tag)</span></label>
+      <input type="text" id="d-cat" value="${deal?.category || ""}" placeholder="e.g. jumbo" />
+      <p style="font-size:.78rem;color:var(--text-muted);margin-top:4px">Matches items whose categories include this tag (case-insensitive)</p>
+    </div>
+    <div class="form-group">
+      <label>Pricing Tiers</label>
+      <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:8px">When cart quantity of matching items ≥ Min Qty, that price per item applies.</p>
+      <div id="d-tiers">${existingTiers.map((t, i) => tierRowHtml(t, i)).join("")}</div>
+      <button class="btn btn-ghost" id="d-add-tier" style="margin-top:4px;min-height:36px">+ Add Tier</button>
+    </div>
+    ${!isNew ? `
+    <div class="form-group" style="display:flex;align-items:center;gap:12px;margin-bottom:0">
+      <label style="flex:1;margin:0">Active</label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="d-active" ${deal.active ? "checked" : ""} style="width:18px;height:18px" />
+        <span id="d-active-lbl">${deal.active ? "On" : "Off"}</span>
+      </label>
+    </div>` : ""}
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
+      <button class="btn btn-primary btn-full" id="d-save-btn">${isNew ? "Create Deal" : "Save Changes"}</button>
+      ${!isNew ? `<button class="btn btn-danger btn-full" id="d-del-btn">Delete Deal</button>` : ""}
+    </div>
+  `);
+
+  function bindRmTier() {
+    document.querySelectorAll("[data-rm-tier]").forEach(btn => {
+      btn.onclick = () => {
+        if (document.querySelectorAll(".deal-tier-row").length > 1) btn.closest(".deal-tier-row").remove();
+        else toast("A deal needs at least one tier", "error");
+      };
+    });
+  }
+  bindRmTier();
+
+  document.getElementById("d-add-tier").onclick = () => {
+    const div = document.getElementById("d-tiers");
+    const idx = div.querySelectorAll(".deal-tier-row").length;
+    div.insertAdjacentHTML("beforeend", tierRowHtml({ minQty: 1, pricePerItem: "" }, idx));
+    bindRmTier();
+  };
+
+  if (!isNew) {
+    const cb = document.getElementById("d-active");
+    cb.onchange = () => { document.getElementById("d-active-lbl").textContent = cb.checked ? "On" : "Off"; };
+  }
+
+  document.getElementById("d-save-btn").onclick = async () => {
+    const name     = document.getElementById("d-name").value.trim();
+    const category = document.getElementById("d-cat").value.trim();
+    if (!name || !category) { toast("Name and category are required", "error"); return; }
+
+    const tierRows = [...document.querySelectorAll(".deal-tier-row")];
+    const tiers = tierRows.map(row => ({
+      minQty:      Number(row.querySelector(".tier-minqty").value),
+      pricePerItem: Number(row.querySelector(".tier-price").value),
+    })).filter(t => t.minQty >= 1);
+    if (!tiers.length) { toast("Add at least one pricing tier", "error"); return; }
+
+    const active = isNew ? true : document.getElementById("d-active").checked;
+    const btn = document.getElementById("d-save-btn");
+    btn.disabled = true; btn.textContent = "Saving…";
+    try {
+      if (isNew) {
+        const { deal: created } = await api.createDeal({ name, category, tiers });
+        dealsCache.push(created);
+        toast("Deal created", "success");
+      } else {
+        const { deal: updated } = await api.updateDeal(deal.dealId, { name, category, tiers, active });
+        const idx = dealsCache.findIndex(d => d.dealId === deal.dealId);
+        if (idx > -1) dealsCache[idx] = updated;
+        toast("Deal saved", "success");
+      }
+      closeModal();
+      openDealsManagerModal();
+    } catch (e) {
+      toast(e.message, "error");
+      btn.disabled = false; btn.textContent = isNew ? "Create Deal" : "Save Changes";
+    }
+  };
+
+  if (!isNew) {
+    document.getElementById("d-del-btn").onclick = async () => {
+      if (!confirm(`Delete "${deal.name}"?`)) return;
+      try {
+        await api.deleteDeal(deal.dealId);
+        dealsCache = dealsCache.filter(d => d.dealId !== deal.dealId);
+        toast("Deal deleted", "success");
+        closeModal();
+        openDealsManagerModal();
+      } catch (e) { toast(e.message, "error"); }
+    };
+  }
+}
+
+/* ── Bulk upload ──────────────────────────────────────────────────────────── */
+function parseBulkData(raw) {
+  const lines = raw.trim().split(/\r?\n/).filter(l => l.trim());
+  if (!lines.length) return [];
+  const sep      = lines[0].includes("\t") ? "\t" : ",";
+  const cols     = lines[0].split(sep).map(c => c.trim().toLowerCase().replace(/['"]/g, ""));
+  const hasHdr   = cols.some(c => ["name","price","quantity","qty","category"].includes(c));
+  const dataLines = hasHdr ? lines.slice(1) : lines;
+  const colMap    = hasHdr ? cols : ["name","price","quantity","category","description"];
+  return dataLines.map(line => {
+    const v = line.split(sep).map(c => c.trim().replace(/^["']|["']$/g, ""));
+    const row = {};
+    colMap.forEach((col, i) => row[col] = v[i] || "");
+    return {
+      name:        row.name || "",
+      price:       parseFloat(row.price) || 0,
+      quantity:    parseInt(row.quantity || row.qty) || 0,
+      category:    row.category || row.categories || "",
+      description: row.description || row.desc || "",
+    };
+  }).filter(r => r.name.trim());
+}
+
+function openBulkUploadModal() {
+  openModal("Bulk Import", `
+    <p style="font-size:.86rem;color:var(--text-muted);margin-bottom:12px">
+      Upload a <strong>.csv</strong> file or paste rows directly.<br/>
+      Columns: <code style="font-size:.8rem;background:var(--bg);padding:2px 6px;border-radius:4px">name, price, quantity, category, description</code>
+    </p>
+    <div class="form-group">
+      <label>Upload .csv / .tsv file</label>
+      <label class="img-upload-label" style="cursor:pointer">
+        📄 Choose file
+        <input type="file" id="bulk-file" accept=".csv,.tsv,.txt" style="display:none" />
+      </label>
+    </div>
+    <div class="form-group">
+      <label>— or paste from spreadsheet —</label>
+      <textarea id="bulk-paste" rows="6" style="width:100%;font-size:.82rem;padding:8px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text);resize:vertical"
+        placeholder="name,price,quantity,category&#10;Big Jumbo Clip,15.00,10,jumbo&#10;Mini Clip,5.00,20,mini"></textarea>
+    </div>
+    <div id="bulk-preview"></div>
+    <div id="bulk-actions" style="display:none;margin-top:12px">
+      <button class="btn btn-primary btn-full" id="bulk-import-btn">Import</button>
+    </div>
+  `);
+
+  let parsedRows = [];
+
+  function showPreview(rows) {
+    parsedRows = rows;
+    const preview = document.getElementById("bulk-preview");
+    const actions = document.getElementById("bulk-actions");
+    if (!rows.length) { preview.innerHTML = ""; actions.style.display = "none"; return; }
+
+    preview.innerHTML = `
+      <p style="font-size:.85rem;font-weight:600;margin-bottom:8px">${rows.length} item${rows.length !== 1 ? "s" : ""} to import:</p>
+      <div style="overflow-x:auto;border-radius:var(--radius-sm);border:1px solid var(--border)">
+        <table style="width:100%;font-size:.79rem;border-collapse:collapse">
+          <thead>
+            <tr style="background:var(--bg)">
+              <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border)">Name</th>
+              <th style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border)">Price</th>
+              <th style="text-align:right;padding:6px 8px;border-bottom:1px solid var(--border)">Qty</th>
+              <th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--border)">Category</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map((r, i) => `
+              <tr style="border-bottom:${i < rows.length - 1 ? "1px solid var(--border)" : "none"}">
+                <td style="padding:5px 8px">${r.name}</td>
+                <td style="text-align:right;padding:5px 8px">${fmt(r.price)}</td>
+                <td style="text-align:right;padding:5px 8px">${r.quantity}</td>
+                <td style="padding:5px 8px;color:var(--text-muted)">${r.category || "—"}</td>
+              </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>`;
+    actions.style.display = "";
+    document.getElementById("bulk-import-btn").textContent = `Import ${rows.length} Item${rows.length !== 1 ? "s" : ""}`;
+  }
+
+  document.getElementById("bulk-file").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      document.getElementById("bulk-paste").value = ev.target.result;
+      showPreview(parseBulkData(ev.target.result));
+    };
+    reader.readAsText(file);
+  });
+
+  let pasteTimer;
+  document.getElementById("bulk-paste").addEventListener("input", (e) => {
+    clearTimeout(pasteTimer);
+    pasteTimer = setTimeout(() => showPreview(parseBulkData(e.target.value)), 400);
+  });
+
+  document.getElementById("bulk-actions").addEventListener("click", async (e) => {
+    if (e.target.id !== "bulk-import-btn") return;
+    const btn = e.target;
+    btn.disabled = true; btn.textContent = "Importing…";
+    let ok = 0, fail = 0;
+    for (const row of parsedRows) {
+      try {
+        const { item } = await api.createItem(row);
+        itemsCache.push(item);
+        ok++;
+      } catch { fail++; }
+    }
+    itemsCache.sort((a, b) => a.name.localeCompare(b.name));
+    toast(`Imported ${ok} item${ok !== 1 ? "s" : ""}${fail ? `, ${fail} failed` : ""}`, fail ? "error" : "success");
+    closeModal();
+    renderInventoryList(itemsCache);
+  });
 }
 
 /* ── Boot ─────────────────────────────────────────────────────────────────── */
