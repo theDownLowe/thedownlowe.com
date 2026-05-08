@@ -625,6 +625,10 @@ textarea { padding: 12px 14px; min-height: 80px; resize: vertical; line-height: 
   flex-wrap: wrap;
   gap: 6px;
 }
+.stock-chip-grid .stock-chip {
+  flex: 1 1 auto;
+  justify-content: center;
+}
 
 .stock-chip {
   display: inline-flex;

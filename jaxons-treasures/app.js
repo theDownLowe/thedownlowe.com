@@ -7,7 +7,7 @@ let token       = localStorage.getItem("jt_token");
 let activeView  = "dashboard";
 let itemsCache  = [];
 let dealsCache  = [];
-let inventoryState = { filter: "", category: "", onlyInStock: false, sort: "name-asc" };
+let inventoryState = { filter: "", categories: [], onlyInStock: false, sort: "name-asc" };
 
 /* ── API Client ───────────────────────────────────────────────────────────── */
 async function apiFetch(method, path, data) {
@@ -413,7 +413,7 @@ async function addLineToCart(cartId, line) {
 
 /* ── Inventory View ───────────────────────────────────────────────────────── */
 async function inventory() {
-  inventoryState = { filter: "", category: "", onlyInStock: false, sort: "name-asc" };
+  inventoryState = { filter: "", categories: [], onlyInStock: false, sort: "name-asc" };
   setView(spinnerHtml());
   try {
     const { items } = await api.getItems();
@@ -435,7 +435,7 @@ function getInventoryCategories() {
 }
 
 function applyInventoryFilters(items) {
-  const { filter, category, onlyInStock, sort } = inventoryState;
+  const { filter, categories, onlyInStock } = inventoryState;
   let result = [...items];
 
   if (filter) {
@@ -444,9 +444,11 @@ function applyInventoryFilters(items) {
       i.name.toLowerCase().includes(q) ||
       (i.category || "").toLowerCase().includes(q));
   }
-  if (category) {
-    result = result.filter(i =>
-      (i.category || "").split(",").map(c => c.trim().toLowerCase()).includes(category.toLowerCase()));
+  if (categories.length) {
+    result = result.filter(i => {
+      const itemCats = (i.category || "").split(",").map(c => c.trim().toLowerCase());
+      return categories.some(c => itemCats.includes(c.toLowerCase()));
+    });
   }
   if (onlyInStock) {
     result = result.filter(i => i.quantity > 0);
@@ -467,17 +469,31 @@ function applyInventoryFilters(items) {
   return result;
 }
 
+function categoryPillsHtml() {
+  const allCats = getInventoryCategories();
+  return allCats.map(c =>
+    `<button class="filter-pill-btn${inventoryState.categories.includes(c) ? " active" : ""}" data-cat="${c}">${c}</button>`
+  ).join("");
+}
+
+function bindCategoryPills() {
+  document.querySelectorAll("[data-cat]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const cat = btn.dataset.cat;
+      const idx = inventoryState.categories.indexOf(cat);
+      if (idx === -1) inventoryState.categories.push(cat);
+      else            inventoryState.categories.splice(idx, 1);
+      btn.classList.toggle("active", inventoryState.categories.includes(cat));
+      renderInventoryList(itemsCache);
+    });
+  });
+}
+
 function inventoryFilterBarHtml() {
-  const { category, onlyInStock, sort } = inventoryState;
-  const categories = getInventoryCategories();
+  const { onlyInStock, sort } = inventoryState;
   return `
     <div class="inv-filter-bar" id="inv-filter-bar">
-      <select id="inv-cat-select" class="filter-pill-select${category ? " active" : ""}">
-        <option value="">All categories</option>
-        ${categories.map(c =>
-          `<option value="${c}"${category === c ? " selected" : ""}>${c}</option>`
-        ).join("")}
-      </select>
+      <div id="inv-cat-pills" style="display:contents">${categoryPillsHtml()}</div>
       <button id="inv-stock-btn" class="filter-pill-btn${onlyInStock ? " active" : ""}">
         In stock
       </button>
@@ -493,7 +509,7 @@ function inventoryFilterBarHtml() {
 }
 
 function inventoryItemsHtml(filtered) {
-  const hasFilters = inventoryState.filter || inventoryState.category || inventoryState.onlyInStock;
+  const hasFilters = inventoryState.filter || inventoryState.categories.length || inventoryState.onlyInStock;
   return filtered.length ? `
     <div class="item-list" style="padding-top:4px;padding-bottom:80px">
       ${filtered.map(item => `
@@ -549,30 +565,26 @@ function renderInventoryList(items) {
   if (document.getElementById("inv-search")) {
     document.getElementById("inv-results").innerHTML = inventoryItemsHtml(filtered);
     bindInventoryCards();
-    // Refresh category options in case items were added or removed
-    const catSelect = document.getElementById("inv-cat-select");
-    if (catSelect) {
-      const cur  = inventoryState.category;
-      const cats = getInventoryCategories();
-      catSelect.innerHTML =
-        `<option value="">All categories</option>` +
-        cats.map(c => `<option value="${c}"${cur === c ? " selected" : ""}>${c}</option>`).join("");
-      catSelect.classList.toggle("active", !!cur);
+    // Refresh category pills in case items were added or removed
+    const catPills = document.getElementById("inv-cat-pills");
+    if (catPills) {
+      catPills.innerHTML = categoryPillsHtml();
+      bindCategoryPills();
     }
     return;
   }
 
   // Full render on initial load
   setView(`
-    <div class="section" style="padding-bottom:4px">
+    <div style="display:flex;gap:8px;padding:16px 16px 8px">
+      <button class="btn btn-secondary" style="flex:1;min-height:38px;font-size:.82rem" id="inv-import-btn">📥 Bulk Import</button>
+      <button class="btn btn-secondary" style="flex:1;min-height:38px;font-size:.82rem" id="inv-deals-btn">🏷️ Deals</button>
+    </div>
+    <div class="section" style="padding-top:0;padding-bottom:4px">
       <input type="text" id="inv-search" placeholder="Search inventory…"
              value="${inventoryState.filter}" />
     </div>
     ${inventoryFilterBarHtml()}
-    <div style="display:flex;gap:8px;padding:0 16px 10px">
-      <button class="btn btn-secondary" style="flex:1;min-height:38px;font-size:.82rem" id="inv-import-btn">📥 Bulk Import</button>
-      <button class="btn btn-secondary" style="flex:1;min-height:38px;font-size:.82rem" id="inv-deals-btn">🏷️ Deals</button>
-    </div>
     <div id="inv-results">${inventoryItemsHtml(filtered)}</div>
 
     <button class="fab" id="inv-add-btn" title="Add item">
@@ -588,11 +600,7 @@ function renderInventoryList(items) {
     renderInventoryList(itemsCache);
   });
 
-  document.getElementById("inv-cat-select").addEventListener("change", (e) => {
-    inventoryState.category = e.target.value;
-    e.target.classList.toggle("active", !!e.target.value);
-    renderInventoryList(itemsCache);
-  });
+  bindCategoryPills();
 
   document.getElementById("inv-stock-btn").addEventListener("click", () => {
     inventoryState.onlyInStock = !inventoryState.onlyInStock;
