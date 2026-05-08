@@ -335,6 +335,9 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
   align-self: center;
 }
 
+/* Floating chat FAB — only shown on mobile via media query */
+.chat-tab { display: none; }
+
 /* ── Chat panel (fixed, full height, slides right to collapse) ── */
 .chat-panel {
   position: fixed;
@@ -422,7 +425,60 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 .chat-send-btn:disabled { background: rgba(255,255,255,0.1); cursor: not-allowed; }
 
 @media (max-width: 900px) {
-  .chat-panel { display: none; }
+  .page-wrapper { margin-right: 0 !important; }
+
+  /* Chat becomes a slide-up overlay instead of a fixed side panel */
+  .chat-panel {
+    display: flex;
+    width: 100%;
+    height: 65vh;
+    top: auto;
+    bottom: 0;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    border-radius: 16px 16px 0 0;
+    border-left: none;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .chat-panel:not(.minimized) { transform: translateY(0); }
+  /* Override desktop minimized rules — on mobile, minimized = off-screen */
+  .chat-panel.minimized {
+    transform: translateY(100%);
+    height: 65vh;
+    width: 100%;
+    border-radius: 16px 16px 0 0;
+  }
+  .chat-panel.minimized .chat-body { display: flex; }
+  .chat-panel.minimized .chat-header { border-bottom: 1px solid rgba(255,255,255,0.08); border-radius: 0; }
+
+  /* Floating chat button */
+  .chat-tab {
+    display: flex;
+    position: fixed;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    width: 52px;
+    height: 52px;
+    background: var(--green);
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 150;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    font-size: 1.3rem;
+    transition: background 0.15s;
+  }
+  .chat-tab:hover { background: var(--green-dark); }
+}
+
+/* ── Tablet / large phone ── */
+@media (max-width: 600px) {
+  .card-main { flex-wrap: wrap; gap: 10px; padding: 10px 12px; }
+  .movie-info { min-width: calc(100% - 90px); }
+  .vote-area { width: 100%; justify-content: flex-end; padding-top: 2px; border-top: 1px solid #f0ece8; }
+  .vote-btn { width: 34px; height: 34px; }
+  .movie-title, a.imdb-link { white-space: normal; }
 }
 
 /* ── Mobile ── */
@@ -433,4 +489,11 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
   .poster-placeholder { width: 52px; height: 75px; }
   .auth-modal { padding: 1.25rem; }
   .queue-side-btn { width: 32px; }
+  .add-comment-row { flex-direction: column; }
+  .comment-submit-btn { width: 100%; }
+  .app { padding: 1.5rem 0.75rem 5rem; }
+  .logo { font-size: 1.6rem; }
+  .main-tab { padding: 8px 14px; }
+  .tab-row { width: 100%; }
+  .tab { flex: 1; text-align: center; }
 }

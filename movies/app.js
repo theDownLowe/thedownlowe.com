@@ -47,7 +47,7 @@ let currentDragListId  = null;   // which list the movie drag is in
 let rankingsPage = 1;
 const PAGE_SIZE  = 20;
 let chatMessages  = [];
-let chatMinimized = false;
+let chatMinimized = window.innerWidth <= 900;
 let chatUnread    = 0;
 let chatVisible   = true; // tracks if user is scrolled to bottom
 
@@ -616,7 +616,11 @@ function toggleChat() {
   chatMinimized = !chatMinimized;
   document.getElementById("chatPanel").classList.toggle("minimized", chatMinimized);
   document.getElementById("chatToggleBtn").textContent = chatMinimized ? "◀" : "▶";
-  document.querySelector(".page-wrapper").style.marginRight = chatMinimized ? "0" : "310px";
+  if (window.innerWidth > 900) {
+    document.querySelector(".page-wrapper").style.marginRight = chatMinimized ? "0" : "310px";
+  }
+  const fab = document.getElementById("chatFab");
+  if (fab) fab.style.display = chatMinimized ? "" : "none";
   if (!chatMinimized) {
     chatUnread = 0;
     document.getElementById("chatBadge").style.display = "none";
@@ -955,4 +959,11 @@ function goToPage(page) {
 }
 
 updateAuthUI();
-loadAll().then(() => { startPolling(); scrollChatToBottom(); });
+
+// On mobile, start with chat minimized so the slide-up panel begins off-screen
+if (chatMinimized) {
+  document.getElementById("chatPanel").classList.add("minimized");
+  document.getElementById("chatToggleBtn").textContent = "◀";
+}
+
+loadAll().then(() => { startPolling(); if (!chatMinimized) scrollChatToBottom(); });
