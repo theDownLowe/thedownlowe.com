@@ -523,12 +523,14 @@ textarea { padding: 12px 14px; min-height: 80px; resize: vertical; line-height: 
   display: flex;
   align-items: flex-end;
   backdrop-filter: blur(2px);
+  padding-top: max(48px, env(safe-area-inset-top));
 }
 
 #modal-sheet {
   background: var(--surface);
   width: 100%;
   max-height: 92vh;
+  max-height: 92dvh;
   border-radius: 20px 20px 0 0;
   overflow-y: auto;
   padding-bottom: env(safe-area-inset-bottom);
@@ -580,6 +582,71 @@ textarea { padding: 12px 14px; min-height: 80px; resize: vertical; line-height: 
 }
 .qr-wrap canvas, .qr-wrap img { border-radius: 8px; }
 
+/* ── Stock alert collapsible ──────────────────────────────────────────────── */
+.stock-alert-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: var(--warning-lt);
+  border: 1.5px solid #FCD34D;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: .88rem;
+  font-weight: 700;
+  color: #92400E;
+  text-align: left;
+  touch-action: manipulation;
+}
+.stock-alert-header:active { opacity: .8; }
+
+.stock-alert-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1;
+  justify-content: flex-end;
+  font-weight: 400;
+}
+
+.stock-alert-chevron {
+  font-size: .8rem;
+  flex-shrink: 0;
+  transition: transform .2s;
+}
+
+.stock-alert-body {
+  padding: 10px 2px 4px;
+}
+
+.stock-chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.stock-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: .78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.stock-chip-out {
+  background: var(--danger-lt);
+  color: var(--danger);
+  border: 1px solid #FCA5A5;
+}
+.stock-chip-low {
+  background: var(--warning-lt);
+  color: var(--warning);
+  border: 1px solid #FCD34D;
+}
+
 /* ── Low-stock alert ──────────────────────────────────────────────────────── */
 .alert {
   border-radius: var(--radius-sm);
@@ -610,6 +677,68 @@ textarea { padding: 12px 14px; min-height: 80px; resize: vertical; line-height: 
 }
 .img-upload-label:active { border-color: var(--primary); background: var(--primary-lt); }
 .img-upload-label input[type="file"] { display: none; }
+
+/* ── Inventory filter bar ─────────────────────────────────────────────────── */
+.inv-filter-bar {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 10px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.inv-filter-bar::-webkit-scrollbar { display: none; }
+
+.filter-pill-select {
+  flex-shrink: 0;
+  width: auto;
+  min-height: 34px;
+  height: 34px;
+  padding: 0 26px 0 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 99px;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--text);
+  background-color: var(--surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%234A7FA3' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color .15s, background-color .15s, color .15s;
+  white-space: nowrap;
+}
+.filter-pill-select:focus { border-color: var(--primary); outline: none; }
+.filter-pill-select.active {
+  border-color: var(--primary);
+  background-color: var(--primary-lt);
+  color: var(--primary-dk);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23005F8E' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.filter-pill-btn {
+  flex-shrink: 0;
+  height: 34px;
+  padding: 0 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 99px;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color .15s, background-color .15s, color .15s;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+.filter-pill-btn:active { opacity: .8; }
+.filter-pill-btn.active {
+  border-color: var(--primary);
+  background: var(--primary-lt);
+  color: var(--primary-dk);
+}
 
 /* ── Date filter ──────────────────────────────────────────────────────────── */
 .filter-bar {

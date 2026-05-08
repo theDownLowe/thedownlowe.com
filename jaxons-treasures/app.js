@@ -7,6 +7,7 @@ let token       = localStorage.getItem("jt_token");
 let activeView  = "dashboard";
 let itemsCache  = [];
 let dealsCache  = [];
+let inventoryState = { filter: "", category: "", onlyInStock: false, sort: "name-asc" };
 
 /* ── API Client ───────────────────────────────────────────────────────────── */
 async function apiFetch(method, path, data) {
@@ -237,18 +238,21 @@ async function dashboard() {
       </div>
 
       ${outStock.length || lowStock.length ? `
-        <div class="section">
-          <div class="page-title" style="font-size:.95rem">⚠️ Stock Alerts</div>
-          ${outStock.map(i => `
-            <div class="alert alert-warning">
-              <span class="alert-icon">🔴</span>
-              <span><strong>${i.name}</strong> — out of stock</span>
-            </div>`).join("")}
-          ${lowStock.map(i => `
-            <div class="alert alert-warning">
-              <span class="alert-icon">🟡</span>
-              <span><strong>${i.name}</strong> — only ${i.quantity} left</span>
-            </div>`).join("")}
+        <div class="section" style="padding-bottom:4px">
+          <button class="stock-alert-header" id="stock-alert-toggle" aria-expanded="false">
+            <span>⚠️ Stock Alerts</span>
+            <span class="stock-alert-summary">
+              ${outStock.length ? `<span class="stock-chip stock-chip-out">${outStock.length} out of stock</span>` : ""}
+              ${lowStock.length ? `<span class="stock-chip stock-chip-low">${lowStock.length} low stock</span>` : ""}
+            </span>
+            <span class="stock-alert-chevron">▾</span>
+          </button>
+          <div class="stock-alert-body" id="stock-alert-body" hidden>
+            <div class="stock-chip-grid">
+              ${outStock.map(i => `<span class="stock-chip stock-chip-out" title="Out of stock">🔴 ${i.name}</span>`).join("")}
+              ${lowStock.map(i => `<span class="stock-chip stock-chip-low" title="${i.quantity} left">🟡 ${i.name} (${i.quantity})</span>`).join("")}
+            </div>
+          </div>
         </div>` : ""}
 
       <div class="section-header">
@@ -270,6 +274,15 @@ async function dashboard() {
           <p>No sales today yet. Tap any item in Inventory to record a sale.</p>
         </div>`}
     `);
+
+    document.getElementById("stock-alert-toggle")?.addEventListener("click", () => {
+      const body    = document.getElementById("stock-alert-body");
+      const toggle  = document.getElementById("stock-alert-toggle");
+      const open    = body.hidden;
+      body.hidden   = !open;
+      toggle.setAttribute("aria-expanded", String(open));
+      toggle.querySelector(".stock-alert-chevron").textContent = open ? "▴" : "▾";
+    });
   } catch (e) {
     setView(`<div class="empty-state"><p>Error loading dashboard: ${e.message}</p></div>`);
   }
@@ -400,6 +413,7 @@ async function addLineToCart(cartId, line) {
 
 /* ── Inventory View ───────────────────────────────────────────────────────── */
 async function inventory() {
+  inventoryState = { filter: "", category: "", onlyInStock: false, sort: "name-asc" };
   setView(spinnerHtml());
   try {
     const { items } = await api.getItems();
@@ -410,45 +424,156 @@ async function inventory() {
   }
 }
 
-function renderInventoryList(items, filter = "") {
-  const filtered = filter
-    ? items.filter(i =>
-        i.name.toLowerCase().includes(filter.toLowerCase()) ||
-        (i.category || "").toLowerCase().includes(filter.toLowerCase()))
-    : items;
+/* ── Inventory helpers ────────────────────────────────────────────────────── */
 
+function getInventoryCategories() {
+  const cats = new Set();
+  itemsCache.forEach(i => {
+    (i.category || "").split(",").map(c => c.trim()).filter(Boolean).forEach(c => cats.add(c));
+  });
+  return [...cats].sort();
+}
+
+function applyInventoryFilters(items) {
+  const { filter, category, onlyInStock, sort } = inventoryState;
+  let result = [...items];
+
+  if (filter) {
+    const q = filter.toLowerCase();
+    result = result.filter(i =>
+      i.name.toLowerCase().includes(q) ||
+      (i.category || "").toLowerCase().includes(q));
+  }
+  if (category) {
+    result = result.filter(i =>
+      (i.category || "").split(",").map(c => c.trim().toLowerCase()).includes(category.toLowerCase()));
+  }
+  if (onlyInStock) {
+    result = result.filter(i => i.quantity > 0);
+  }
+
+  result.sort((a, b) => {
+    switch (inventoryState.sort) {
+      case "name-asc":   return (a.name ?? "").localeCompare(b.name ?? "");
+      case "name-desc":  return (b.name ?? "").localeCompare(a.name ?? "");
+      case "price-asc":  return (a.price ?? 0) - (b.price ?? 0);
+      case "price-desc": return (b.price ?? 0) - (a.price ?? 0);
+      case "stock-asc":  return (a.quantity ?? 0) - (b.quantity ?? 0);
+      case "stock-desc": return (b.quantity ?? 0) - (a.quantity ?? 0);
+      default:           return 0;
+    }
+  });
+
+  return result;
+}
+
+function inventoryFilterBarHtml() {
+  const { category, onlyInStock, sort } = inventoryState;
+  const categories = getInventoryCategories();
+  return `
+    <div class="inv-filter-bar" id="inv-filter-bar">
+      <select id="inv-cat-select" class="filter-pill-select${category ? " active" : ""}">
+        <option value="">All categories</option>
+        ${categories.map(c =>
+          `<option value="${c}"${category === c ? " selected" : ""}>${c}</option>`
+        ).join("")}
+      </select>
+      <button id="inv-stock-btn" class="filter-pill-btn${onlyInStock ? " active" : ""}">
+        In stock
+      </button>
+      <select id="inv-sort-select" class="filter-pill-select">
+        <option value="name-asc"  ${sort === "name-asc"   ? "selected" : ""}>Name A→Z</option>
+        <option value="name-desc" ${sort === "name-desc"  ? "selected" : ""}>Name Z→A</option>
+        <option value="price-asc" ${sort === "price-asc"  ? "selected" : ""}>Price ↑</option>
+        <option value="price-desc"${sort === "price-desc" ? "selected" : ""}>Price ↓</option>
+        <option value="stock-asc" ${sort === "stock-asc"  ? "selected" : ""}>Stock ↑</option>
+        <option value="stock-desc"${sort === "stock-desc" ? "selected" : ""}>Stock ↓</option>
+      </select>
+    </div>`;
+}
+
+function inventoryItemsHtml(filtered) {
+  const hasFilters = inventoryState.filter || inventoryState.category || inventoryState.onlyInStock;
+  return filtered.length ? `
+    <div class="item-list" style="padding-top:4px;padding-bottom:80px">
+      ${filtered.map(item => `
+        <div class="item-card" data-item-id="${item.itemId}">
+          ${itemThumbHtml(item)}
+          <div class="item-info">
+            <div class="item-name">${item.name}</div>
+            <div class="item-meta">
+              <span class="item-price">${fmt(item.price)}</span>
+              <span style="margin:0 6px">·</span>
+              <span class="${stockClass(item.quantity)}">${stockLabel(item.quantity)}</span>
+            </div>
+            ${item.category ? `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">${item.category.split(",").map(c=>c.trim()).filter(Boolean).map(c=>`<span class="badge badge-ocean">${c}</span>`).join("")}</div>` : ""}
+          </div>
+          <div class="item-actions" onclick="event.stopPropagation()">
+            <button class="btn btn-ghost" style="padding:4px 8px" data-edit="${item.itemId}">Edit</button>
+            <button class="btn btn-ghost" style="padding:4px 8px;color:var(--text-muted)" data-qr="${item.itemId}">QR</button>
+          </div>
+        </div>`).join("")}
+    </div>` : `
+    <div class="empty-state">
+      <div class="empty-state-icon">📦</div>
+      <p>${hasFilters ? "No items match your filters." : "No items yet. Tap + to add your first product."}</p>
+    </div>`;
+}
+
+function bindInventoryCards() {
+  document.querySelectorAll("[data-edit]").forEach(btn => {
+    btn.onclick = () => {
+      const item = itemsCache.find(i => i.itemId === btn.dataset.edit);
+      if (item) openItemModal(item);
+    };
+  });
+  document.querySelectorAll("[data-qr]").forEach(btn => {
+    btn.onclick = () => {
+      const item = itemsCache.find(i => i.itemId === btn.dataset.qr);
+      if (item) openQrModal(item);
+    };
+  });
+  document.querySelectorAll(".item-card[data-item-id]").forEach(card => {
+    card.onclick = () => {
+      const item = itemsCache.find(i => i.itemId === card.dataset.itemId);
+      if (item) openSellModal(item);
+    };
+  });
+}
+
+function renderInventoryList(items) {
+  const filtered = applyInventoryFilters(items);
+
+  // Partial update: only replace results so the mobile keyboard stays open
+  // while the user is typing, and all filter controls keep their state.
+  if (document.getElementById("inv-search")) {
+    document.getElementById("inv-results").innerHTML = inventoryItemsHtml(filtered);
+    bindInventoryCards();
+    // Refresh category options in case items were added or removed
+    const catSelect = document.getElementById("inv-cat-select");
+    if (catSelect) {
+      const cur  = inventoryState.category;
+      const cats = getInventoryCategories();
+      catSelect.innerHTML =
+        `<option value="">All categories</option>` +
+        cats.map(c => `<option value="${c}"${cur === c ? " selected" : ""}>${c}</option>`).join("");
+      catSelect.classList.toggle("active", !!cur);
+    }
+    return;
+  }
+
+  // Full render on initial load
   setView(`
     <div class="section" style="padding-bottom:4px">
-      <input type="text" id="inv-search" placeholder="Search inventory…" value="${filter}" />
+      <input type="text" id="inv-search" placeholder="Search inventory…"
+             value="${inventoryState.filter}" />
     </div>
+    ${inventoryFilterBarHtml()}
     <div style="display:flex;gap:8px;padding:0 16px 10px">
       <button class="btn btn-secondary" style="flex:1;min-height:38px;font-size:.82rem" id="inv-import-btn">📥 Bulk Import</button>
       <button class="btn btn-secondary" style="flex:1;min-height:38px;font-size:.82rem" id="inv-deals-btn">🏷️ Deals</button>
     </div>
-    ${filtered.length ? `
-      <div class="item-list" style="padding-top:4px;padding-bottom:80px">
-        ${filtered.map(item => `
-          <div class="item-card" data-item-id="${item.itemId}">
-            ${itemThumbHtml(item)}
-            <div class="item-info">
-              <div class="item-name">${item.name}</div>
-              <div class="item-meta">
-                <span class="item-price">${fmt(item.price)}</span>
-                <span style="margin:0 6px">·</span>
-                <span class="${stockClass(item.quantity)}">${stockLabel(item.quantity)}</span>
-              </div>
-              ${item.category ? `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">${item.category.split(",").map(c=>c.trim()).filter(Boolean).map(c=>`<span class="badge badge-ocean">${c}</span>`).join("")}</div>` : ""}
-            </div>
-            <div class="item-actions" onclick="event.stopPropagation()">
-              <button class="btn btn-ghost" style="padding:4px 8px" data-edit="${item.itemId}">Edit</button>
-              <button class="btn btn-ghost" style="padding:4px 8px;color:var(--text-muted)" data-qr="${item.itemId}">QR</button>
-            </div>
-          </div>`).join("")}
-      </div>` : `
-      <div class="empty-state">
-        <div class="empty-state-icon">📦</div>
-        <p>${filter ? "No items match your search." : "No items yet. Tap + to add your first product."}</p>
-      </div>`}
+    <div id="inv-results">${inventoryItemsHtml(filtered)}</div>
 
     <button class="fab" id="inv-add-btn" title="Add item">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
@@ -459,33 +584,32 @@ function renderInventoryList(items, filter = "") {
   `);
 
   document.getElementById("inv-search").addEventListener("input", (e) => {
-    renderInventoryList(itemsCache, e.target.value);
+    inventoryState.filter = e.target.value;
+    renderInventoryList(itemsCache);
+  });
+
+  document.getElementById("inv-cat-select").addEventListener("change", (e) => {
+    inventoryState.category = e.target.value;
+    e.target.classList.toggle("active", !!e.target.value);
+    renderInventoryList(itemsCache);
+  });
+
+  document.getElementById("inv-stock-btn").addEventListener("click", () => {
+    inventoryState.onlyInStock = !inventoryState.onlyInStock;
+    document.getElementById("inv-stock-btn").classList.toggle("active", inventoryState.onlyInStock);
+    renderInventoryList(itemsCache);
+  });
+
+  document.getElementById("inv-sort-select").addEventListener("change", (e) => {
+    inventoryState.sort = e.target.value;
+    renderInventoryList(itemsCache);
   });
 
   document.getElementById("inv-add-btn").onclick    = () => openItemModal(null);
   document.getElementById("inv-import-btn").onclick = () => openBulkUploadModal();
   document.getElementById("inv-deals-btn").onclick  = () => openDealsManagerModal();
 
-  document.querySelectorAll("[data-edit]").forEach(btn => {
-    btn.onclick = () => {
-      const item = itemsCache.find(i => i.itemId === btn.dataset.edit);
-      if (item) openItemModal(item);
-    };
-  });
-
-  document.querySelectorAll("[data-qr]").forEach(btn => {
-    btn.onclick = () => {
-      const item = itemsCache.find(i => i.itemId === btn.dataset.qr);
-      if (item) openQrModal(item);
-    };
-  });
-
-  document.querySelectorAll(".item-card[data-item-id]").forEach(card => {
-    card.onclick = () => {
-      const item = itemsCache.find(i => i.itemId === card.dataset.itemId);
-      if (item) openSellModal(item);
-    };
-  });
+  bindInventoryCards();
 }
 
 function openItemModal(item) {
@@ -505,7 +629,7 @@ function openItemModal(item) {
     </div>
     <div class="form-group">
       <label>Price ($)</label>
-      <input type="number" id="f-price" value="${item?.price ?? ""}" step="0.01" min="0" placeholder="0.00" />
+      <input type="number" id="f-price" value="${item?.price != null ? Number(item.price).toFixed(2) : ""}" step="0.01" min="0" placeholder="0.00" />
     </div>
     <div class="form-group">
       <label>Quantity</label>
@@ -570,7 +694,7 @@ function openItemModal(item) {
 
   document.getElementById("save-item-btn").onclick = async () => {
     const name  = document.getElementById("f-name").value.trim();
-    const price = Number(document.getElementById("f-price").value);
+    const price = Math.round(Number(document.getElementById("f-price").value) * 100) / 100;
     const qty   = Number(document.getElementById("f-qty").value);
     const cat   = document.getElementById("f-cat").value.trim();
     const desc  = document.getElementById("f-desc").value.trim();
@@ -683,17 +807,16 @@ function renderCartsList(cartList) {
     <div class="section-header" style="padding-top:20px">
       <h2>Open Carts</h2>
     </div>
-    ${cartList.length ? cartList.map(cart => cartCardHtml(cart)).join("") : `
+    ${cartList.length ? `
+      ${cartList.map(cart => cartCardHtml(cart)).join("")}
+      <div style="padding-bottom:80px"></div>` : `
       <div class="empty-state">
         <div class="empty-state-icon">🧾</div>
         <p>No open carts. Create one to start building a customer order.</p>
+        <button class="btn btn-primary" id="new-cart-empty-btn" style="margin-top:8px">+ New Cart</button>
       </div>`}
 
-    <div class="section" style="padding-bottom:80px">
-      <button class="btn btn-primary btn-full" id="new-cart-top-btn">+ New Cart</button>
-    </div>
-
-    <button class="fab" style="bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 80px)" id="carts-fab">
+    <button class="fab" id="carts-fab">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
            stroke-linecap="round" stroke-linejoin="round">
         <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -701,18 +824,15 @@ function renderCartsList(cartList) {
     </button>
   `);
 
-  function bindNewCart() {
-    const handler = async () => {
-      try {
-        const { cart } = await api.createCart({});
-        openCartDetail(cart);
-      } catch (e) { toast(e.message, "error"); }
-    };
-    document.getElementById("new-cart-top-btn").onclick = handler;
-    document.getElementById("carts-fab").onclick = handler;
+  async function createNewCart() {
+    try {
+      const { cart } = await api.createCart({});
+      openCartDetail(cart);
+    } catch (e) { toast(e.message, "error"); }
   }
 
-  bindNewCart();
+  document.getElementById("carts-fab").onclick = createNewCart;
+  document.getElementById("new-cart-empty-btn")?.addEventListener("click", createNewCart);
 
   document.querySelectorAll("[data-open-cart]").forEach(btn => {
     btn.onclick = async () => {
