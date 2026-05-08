@@ -493,10 +493,6 @@ function inventoryFilterBarHtml() {
   const { onlyInStock, sort } = inventoryState;
   return `
     <div class="inv-filter-bar" id="inv-filter-bar">
-      <div id="inv-cat-pills" style="display:contents">${categoryPillsHtml()}</div>
-      <button id="inv-stock-btn" class="filter-pill-btn${onlyInStock ? " active" : ""}">
-        In stock
-      </button>
       <select id="inv-sort-select" class="filter-pill-select">
         <option value="name-asc"  ${sort === "name-asc"   ? "selected" : ""}>Name A→Z</option>
         <option value="name-desc" ${sort === "name-desc"  ? "selected" : ""}>Name Z→A</option>
@@ -505,6 +501,10 @@ function inventoryFilterBarHtml() {
         <option value="stock-asc" ${sort === "stock-asc"  ? "selected" : ""}>Stock ↑</option>
         <option value="stock-desc"${sort === "stock-desc" ? "selected" : ""}>Stock ↓</option>
       </select>
+      <button id="inv-stock-btn" class="filter-pill-btn${onlyInStock ? " active" : ""}">
+        In stock
+      </button>
+      <div id="inv-cat-pills" style="display:contents">${categoryPillsHtml()}</div>
     </div>`;
 }
 
