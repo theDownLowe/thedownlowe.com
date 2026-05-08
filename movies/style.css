@@ -115,7 +115,7 @@ body {
 .queue-card-wrapper .movie-card { flex: 1; border-radius: 0 var(--radius) var(--radius) 0; }
 
 /* ── Drag handle ── */
-.drag-handle { width: 28px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--surface); border: 1px solid var(--border); border-right: none; border-radius: var(--radius) 0 0 var(--radius); color: #ccc; cursor: grab; user-select: none; transition: color 0.1s, background 0.1s; }
+.drag-handle { width: 28px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--surface); border: 1px solid var(--border); border-right: none; border-radius: var(--radius) 0 0 var(--radius); color: #ccc; cursor: grab; user-select: none; touch-action: none; transition: color 0.1s, background 0.1s; }
 .drag-handle:hover { color: var(--muted); background: #f5f5f3; }
 .drag-handle:active { cursor: grabbing; }
 
@@ -260,6 +260,7 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
   color: #ccc;
   cursor: grab;
   user-select: none;
+  touch-action: none;
   margin-right: 8px;
 }
 .list-drag-grip:hover { color: var(--muted); }

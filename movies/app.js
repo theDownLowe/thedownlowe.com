@@ -441,6 +441,123 @@ async function onListMovieDrop(e, listId, targetId) {
   catch (e) { console.error("List movie reorder failed:", e); }
 }
 
+// ── Touch drag-and-drop (all three drag systems) ─────────────────────────────
+let touchDrag = null;
+
+function initTouchDrag() {
+  document.addEventListener("touchstart",  handleTouchStart,  { passive: false });
+  document.addEventListener("touchmove",   handleTouchMove,   { passive: false });
+  document.addEventListener("touchend",    handleTouchEnd);
+  document.addEventListener("touchcancel", handleTouchCancel);
+}
+
+// Identify which draggable element and system a touch target belongs to.
+// Check list-movie before queue-card since list-movie wrappers carry both classes.
+function getTouchDraggable(target) {
+  const handle = target.closest(".drag-handle, .list-drag-grip");
+  if (!handle) return null;
+  const listMovie = handle.closest(".list-movie-wrapper");
+  if (listMovie) return { el: listMovie, type: "listMovie", id: listMovie.dataset.id, listId: listMovie.dataset.list };
+  const queueCard = handle.closest(".queue-card-wrapper");
+  if (queueCard) return { el: queueCard, type: "queue", id: queueCard.dataset.id };
+  const listPanel = handle.closest(".list-panel");
+  if (listPanel) return { el: listPanel, type: "list", id: listPanel.dataset.listId };
+  return null;
+}
+
+function getDragSelector(type) {
+  if (type === "listMovie") return ".list-movie-wrapper";
+  if (type === "list")      return ".list-panel";
+  return ".queue-card-wrapper:not(.list-movie-wrapper)";
+}
+
+function handleTouchStart(e) {
+  const draggable = getTouchDraggable(e.touches[0].target);
+  if (!draggable) return;
+  e.preventDefault(); // prevent scroll while dragging from a handle
+  const touch = e.touches[0];
+  const rect  = draggable.el.getBoundingClientRect();
+  const clone = draggable.el.cloneNode(true);
+  Object.assign(clone.style, {
+    position: "fixed", top: rect.top + "px", left: rect.left + "px",
+    width: rect.width + "px", opacity: "0.82", pointerEvents: "none",
+    zIndex: "9999", boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
+    transform: "scale(1.02)", transition: "none",
+  });
+  document.body.appendChild(clone);
+  draggable.el.classList.add("dragging");
+  touchDrag = {
+    ...draggable, clone,
+    offsetX: touch.clientX - rect.left,
+    offsetY: touch.clientY - rect.top,
+    targetEl: null,
+  };
+}
+
+function handleTouchMove(e) {
+  if (!touchDrag) return;
+  e.preventDefault();
+  const touch = e.touches[0];
+  touchDrag.clone.style.top  = (touch.clientY - touchDrag.offsetY) + "px";
+  touchDrag.clone.style.left = (touch.clientX - touchDrag.offsetX) + "px";
+  // Briefly hide clone so elementFromPoint finds the real element beneath
+  touchDrag.clone.style.visibility = "hidden";
+  const under = document.elementFromPoint(touch.clientX, touch.clientY);
+  touchDrag.clone.style.visibility = "";
+  const sel = getDragSelector(touchDrag.type);
+  document.querySelectorAll(`${sel}.drag-over`).forEach(el => el.classList.remove("drag-over"));
+  let target = under?.closest(sel);
+  if (touchDrag.type === "listMovie" && target?.dataset.list !== touchDrag.listId) target = null;
+  if (target && target !== touchDrag.el) { target.classList.add("drag-over"); touchDrag.targetEl = target; }
+  else touchDrag.targetEl = null;
+}
+
+function cleanupTouchDrag() {
+  if (!touchDrag) return;
+  touchDrag.clone.remove();
+  touchDrag.el.classList.remove("dragging");
+  document.querySelectorAll(`${getDragSelector(touchDrag.type)}.drag-over`).forEach(el => el.classList.remove("drag-over"));
+}
+
+function handleTouchCancel() {
+  cleanupTouchDrag();
+  touchDrag = null;
+}
+
+async function handleTouchEnd() {
+  if (!touchDrag) return;
+  const { type, id, listId, targetEl } = touchDrag;
+  cleanupTouchDrag();
+  touchDrag = null;
+  if (!targetEl) return;
+  const targetId = type === "list" ? targetEl.dataset.listId : targetEl.dataset.id;
+  if (id === targetId) return;
+  if (type === "queue") {
+    const si = queueIds.indexOf(id), ti = queueIds.indexOf(targetId);
+    if (si === -1 || ti === -1) return;
+    const newOrder = [...queueIds]; newOrder.splice(si, 1); newOrder.splice(ti, 0, id);
+    queueIds = newOrder; render();
+    try { await fetch(`${API}/queue`, { method: "PUT", headers: jsonHeaders(), body: JSON.stringify({ movieIds: queueIds }) }); }
+    catch (err) { console.error("Touch queue reorder failed:", err); }
+  } else if (type === "listMovie") {
+    const list = lists.find(l => l.listId === listId); if (!list) return;
+    const ids = [...(list.movieIds || [])];
+    const si = ids.indexOf(id), ti = ids.indexOf(targetId);
+    if (si === -1 || ti === -1) return;
+    ids.splice(si, 1); ids.splice(ti, 0, id);
+    list.movieIds = ids; render();
+    try { await fetch(`${API}/lists/${listId}/order`, { method: "PUT", headers: jsonHeaders(), body: JSON.stringify({ movieIds: ids }) }); }
+    catch (err) { console.error("Touch list movie reorder failed:", err); }
+  } else if (type === "list") {
+    const si = listOrder.indexOf(id), ti = listOrder.indexOf(targetId);
+    if (si === -1 || ti === -1) return;
+    const newOrder = [...listOrder]; newOrder.splice(si, 1); newOrder.splice(ti, 0, id);
+    listOrder = newOrder; render();
+    try { await fetch(`${API}/listorder`, { method: "PUT", headers: jsonHeaders(), body: JSON.stringify({ listIds: listOrder }) }); }
+    catch (err) { console.error("Touch list reorder failed:", err); }
+  }
+}
+
 // ── List CRUD ─────────────────────────────────────────────────────────────────
 function toggleListExpanded(listId) {
   if (expandedLists.has(listId)) expandedLists.delete(listId);
@@ -1017,6 +1134,7 @@ function goToPage(page) {
 }
 
 updateAuthUI();
+initTouchDrag();
 
 // Apply saved chat state on load
 if (chatMinimized) {
