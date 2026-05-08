@@ -8,6 +8,7 @@ let activeView  = "dashboard";
 let itemsCache  = [];
 let dealsCache  = [];
 let inventoryState = { filter: "", categories: [], onlyInStock: false, onlyOutOfStock: false, sort: "name-asc" };
+let soldCache      = {}; // itemId -> total units sold
 let settingsState  = { categoryOrder: JSON.parse(localStorage.getItem("jt_category_order") || "[]") };
 
 /* ── API Client ───────────────────────────────────────────────────────────── */
@@ -419,8 +420,12 @@ async function inventory() {
   inventoryState = { filter: "", categories: [], onlyInStock: false, onlyOutOfStock: false, sort: "name-asc" };
   setView(spinnerHtml());
   try {
-    const { items } = await api.getItems();
+    const [{ items }, revenueData] = await Promise.all([
+      api.getItems(),
+      api.getRevenue().catch(() => ({ breakdown: [] })),
+    ]);
     itemsCache = items;
+    soldCache  = Object.fromEntries((revenueData.breakdown || []).map(b => [b.itemId, b.units]));
     renderInventoryList(items);
   } catch (e) {
     setView(`<div class="empty-state"><p>Error: ${e.message}</p></div>`);
@@ -467,6 +472,8 @@ function applyInventoryFilters(items) {
       case "price-desc": return (b.price ?? 0) - (a.price ?? 0);
       case "stock-asc":  return (a.quantity ?? 0) - (b.quantity ?? 0);
       case "stock-desc": return (b.quantity ?? 0) - (a.quantity ?? 0);
+      case "sold-asc":   return (soldCache[a.itemId] ?? 0) - (soldCache[b.itemId] ?? 0);
+      case "sold-desc":  return (soldCache[b.itemId] ?? 0) - (soldCache[a.itemId] ?? 0);
       default:           return 0;
     }
   });
@@ -503,8 +510,10 @@ function inventoryFilterBarHtml() {
         <option value="name-desc" ${sort === "name-desc"  ? "selected" : ""}>Name Z→A</option>
         <option value="price-asc" ${sort === "price-asc"  ? "selected" : ""}>Price ↑</option>
         <option value="price-desc"${sort === "price-desc" ? "selected" : ""}>Price ↓</option>
-        <option value="stock-asc" ${sort === "stock-asc"  ? "selected" : ""}>Stock ↑</option>
-        <option value="stock-desc"${sort === "stock-desc" ? "selected" : ""}>Stock ↓</option>
+        <option value="stock-asc"  ${sort === "stock-asc"  ? "selected" : ""}>Stock ↑</option>
+        <option value="stock-desc" ${sort === "stock-desc" ? "selected" : ""}>Stock ↓</option>
+        <option value="sold-asc"   ${sort === "sold-asc"   ? "selected" : ""}>Sold ↑</option>
+        <option value="sold-desc"  ${sort === "sold-desc"  ? "selected" : ""}>Sold ↓</option>
       </select>
       <button id="inv-stock-btn" class="filter-pill-btn${onlyInStock ? " active" : ""}">In stock</button>
       <button id="inv-oos-btn" class="filter-pill-btn${onlyOutOfStock ? " active" : ""}">Out of stock</button>
@@ -525,6 +534,7 @@ function inventoryItemsHtml(filtered) {
               <span class="item-price">${fmt(item.price)}</span>
               <span style="margin:0 6px">·</span>
               <span class="${stockClass(item.quantity)}">${stockLabel(item.quantity)}</span>
+              ${soldCache[item.itemId] ? `<span style="margin:0 6px">·</span><span style="color:var(--text-muted)">${soldCache[item.itemId]} sold</span>` : ""}
             </div>
             ${item.category ? `<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">${item.category.split(",").map(c=>c.trim()).filter(Boolean).map(c=>`<span class="badge badge-ocean">${c}</span>`).join("")}</div>` : ""}
           </div>
