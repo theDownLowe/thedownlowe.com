@@ -7,7 +7,7 @@ let token       = localStorage.getItem("jt_token");
 let activeView  = "dashboard";
 let itemsCache  = [];
 let dealsCache  = [];
-let inventoryState = { filter: "", categories: [], onlyInStock: false, sort: "name-asc" };
+let inventoryState = { filter: "", categories: [], onlyInStock: false, onlyOutOfStock: false, sort: "name-asc" };
 
 /* ── API Client ───────────────────────────────────────────────────────────── */
 async function apiFetch(method, path, data) {
@@ -413,7 +413,7 @@ async function addLineToCart(cartId, line) {
 
 /* ── Inventory View ───────────────────────────────────────────────────────── */
 async function inventory() {
-  inventoryState = { filter: "", categories: [], onlyInStock: false, sort: "name-asc" };
+  inventoryState = { filter: "", categories: [], onlyInStock: false, onlyOutOfStock: false, sort: "name-asc" };
   setView(spinnerHtml());
   try {
     const { items } = await api.getItems();
@@ -435,7 +435,7 @@ function getInventoryCategories() {
 }
 
 function applyInventoryFilters(items) {
-  const { filter, categories, onlyInStock } = inventoryState;
+  const { filter, categories, onlyInStock, onlyOutOfStock } = inventoryState;
   let result = [...items];
 
   if (filter) {
@@ -450,9 +450,8 @@ function applyInventoryFilters(items) {
       return categories.some(c => itemCats.includes(c.toLowerCase()));
     });
   }
-  if (onlyInStock) {
-    result = result.filter(i => i.quantity > 0);
-  }
+  if (onlyInStock)     result = result.filter(i => i.quantity > 0);
+  if (onlyOutOfStock)  result = result.filter(i => i.quantity === 0);
 
   result.sort((a, b) => {
     switch (inventoryState.sort) {
@@ -490,7 +489,7 @@ function bindCategoryPills() {
 }
 
 function inventoryFilterBarHtml() {
-  const { onlyInStock, sort } = inventoryState;
+  const { onlyInStock, onlyOutOfStock, sort } = inventoryState;
   return `
     <div class="inv-filter-bar" id="inv-filter-bar">
       <select id="inv-sort-select" class="filter-pill-select">
@@ -501,15 +500,14 @@ function inventoryFilterBarHtml() {
         <option value="stock-asc" ${sort === "stock-asc"  ? "selected" : ""}>Stock ↑</option>
         <option value="stock-desc"${sort === "stock-desc" ? "selected" : ""}>Stock ↓</option>
       </select>
-      <button id="inv-stock-btn" class="filter-pill-btn${onlyInStock ? " active" : ""}">
-        In stock
-      </button>
+      <button id="inv-stock-btn" class="filter-pill-btn${onlyInStock ? " active" : ""}">In stock</button>
+      <button id="inv-oos-btn" class="filter-pill-btn${onlyOutOfStock ? " active" : ""}">Out of stock</button>
       <div id="inv-cat-pills" style="display:contents">${categoryPillsHtml()}</div>
     </div>`;
 }
 
 function inventoryItemsHtml(filtered) {
-  const hasFilters = inventoryState.filter || inventoryState.categories.length || inventoryState.onlyInStock;
+  const hasFilters = inventoryState.filter || inventoryState.categories.length || inventoryState.onlyInStock || inventoryState.onlyOutOfStock;
   return filtered.length ? `
     <div class="item-list" style="padding-top:4px;padding-bottom:80px">
       ${filtered.map(item => `
@@ -604,7 +602,17 @@ function renderInventoryList(items) {
 
   document.getElementById("inv-stock-btn").addEventListener("click", () => {
     inventoryState.onlyInStock = !inventoryState.onlyInStock;
+    if (inventoryState.onlyInStock) inventoryState.onlyOutOfStock = false;
     document.getElementById("inv-stock-btn").classList.toggle("active", inventoryState.onlyInStock);
+    document.getElementById("inv-oos-btn").classList.toggle("active", false);
+    renderInventoryList(itemsCache);
+  });
+
+  document.getElementById("inv-oos-btn").addEventListener("click", () => {
+    inventoryState.onlyOutOfStock = !inventoryState.onlyOutOfStock;
+    if (inventoryState.onlyOutOfStock) inventoryState.onlyInStock = false;
+    document.getElementById("inv-oos-btn").classList.toggle("active", inventoryState.onlyOutOfStock);
+    document.getElementById("inv-stock-btn").classList.toggle("active", false);
     renderInventoryList(itemsCache);
   });
 
@@ -820,8 +828,7 @@ function renderCartsList(cartList) {
       <div style="padding-bottom:80px"></div>` : `
       <div class="empty-state">
         <div class="empty-state-icon">🧾</div>
-        <p>No open carts. Create one to start building a customer order.</p>
-        <button class="btn btn-primary" id="new-cart-empty-btn" style="margin-top:8px">+ New Cart</button>
+        <p>No open carts. Tap + to start building a customer order.</p>
       </div>`}
 
     <button class="fab" id="carts-fab">
@@ -840,7 +847,6 @@ function renderCartsList(cartList) {
   }
 
   document.getElementById("carts-fab").onclick = createNewCart;
-  document.getElementById("new-cart-empty-btn")?.addEventListener("click", createNewCart);
 
   document.querySelectorAll("[data-open-cart]").forEach(btn => {
     btn.onclick = async () => {
