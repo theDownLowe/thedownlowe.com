@@ -47,7 +47,8 @@ let currentDragListId  = null;   // which list the movie drag is in
 let rankingsPage = 1;
 const PAGE_SIZE  = 20;
 let chatMessages  = [];
-let chatMinimized = window.innerWidth <= 900;
+const _savedChat = localStorage.getItem("chatMinimized");
+let chatMinimized = _savedChat !== null ? _savedChat === "true" : window.innerWidth <= 900;
 let chatUnread    = 0;
 let chatVisible   = true; // tracks if user is scrolled to bottom
 
@@ -614,6 +615,7 @@ async function sendChatMessage() {
 
 function toggleChat() {
   chatMinimized = !chatMinimized;
+  localStorage.setItem("chatMinimized", chatMinimized);
   document.getElementById("chatPanel").classList.toggle("minimized", chatMinimized);
   document.getElementById("chatToggleBtn").textContent = chatMinimized ? "◀" : "▶";
   if (window.innerWidth > 900) {
