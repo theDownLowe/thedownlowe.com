@@ -8,6 +8,7 @@ let activeView  = "dashboard";
 let itemsCache  = [];
 let dealsCache  = [];
 let inventoryState = { filter: "", categories: [], onlyInStock: false, onlyOutOfStock: false, sort: "name-asc" };
+let settingsState  = { categoryOrder: JSON.parse(localStorage.getItem("jt_category_order") || "[]") };
 
 /* ── API Client ───────────────────────────────────────────────────────────── */
 async function apiFetch(method, path, data) {
@@ -95,7 +96,7 @@ function navigate(view, params = {}) {
   document.querySelectorAll(".nav-tab").forEach(btn => {
     btn.classList.toggle("active", btn.dataset.view === view);
   });
-  const views = { dashboard, inventory, carts, history };
+  const views = { dashboard, inventory, carts, history, settings };
   if (views[view]) views[view](params);
 }
 
@@ -151,6 +152,7 @@ function spinnerHtml() {
 function showLogin() {
   document.getElementById("bottom-nav").classList.add("hidden");
   document.getElementById("logout-btn").classList.add("hidden");
+  document.getElementById("settings-btn").classList.add("hidden");
   setView(`
     <div class="login-wrap">
       <div class="login-card">
@@ -195,6 +197,7 @@ function showLogin() {
 function showApp() {
   document.getElementById("bottom-nav").classList.remove("hidden");
   document.getElementById("logout-btn").classList.remove("hidden");
+  document.getElementById("settings-btn").classList.remove("hidden");
 
   const params = new URLSearchParams(window.location.search);
   const scanId = params.get("scan");
@@ -431,7 +434,10 @@ function getInventoryCategories() {
   itemsCache.forEach(i => {
     (i.category || "").split(",").map(c => c.trim()).filter(Boolean).forEach(c => cats.add(c));
   });
-  return [...cats].sort();
+  const allCats = [...cats];
+  const ordered = settingsState.categoryOrder.filter(c => allCats.includes(c));
+  const rest    = allCats.filter(c => !ordered.includes(c)).sort();
+  return [...ordered, ...rest];
 }
 
 function applyInventoryFilters(items) {
@@ -1628,12 +1634,86 @@ function openBulkUploadModal() {
   });
 }
 
+/* ── Settings View ────────────────────────────────────────────────────────── */
+async function settings() {
+  if (!itemsCache.length) {
+    setView(spinnerHtml());
+    try {
+      const { items } = await api.getItems();
+      itemsCache = items;
+    } catch { /* render with empty cache */ }
+  }
+  renderSettingsView();
+}
+
+function renderSettingsView() {
+  const allCats = getInventoryCategories();
+
+  setView(`
+    <div class="section-header" style="padding-top:20px">
+      <h2>Settings</h2>
+    </div>
+    <div class="settings-page">
+      <div class="settings-section">
+        <div class="settings-section-title">Category Filter Order</div>
+        <div class="settings-section-desc">
+          Set the order categories appear in the inventory filter row.
+          Categories not listed here will follow alphabetically.
+        </div>
+        ${allCats.length ? `
+          <div id="settings-cat-list">
+            ${allCats.map((cat, i) => `
+              <div class="settings-cat-row" data-cat="${cat}">
+                <span class="settings-cat-drag">⠿</span>
+                <span class="settings-cat-label">${cat}</span>
+                <div class="settings-cat-btns">
+                  <button class="settings-order-btn" data-cat-up="${i}" ${i === 0 ? "disabled" : ""} aria-label="Move up">↑</button>
+                  <button class="settings-order-btn" data-cat-down="${i}" ${i === allCats.length - 1 ? "disabled" : ""} aria-label="Move down">↓</button>
+                </div>
+              </div>
+            `).join("")}
+          </div>
+        ` : `
+          <p class="settings-empty">No categories yet. Add items with categories in Inventory.</p>
+        `}
+      </div>
+    </div>
+  `);
+
+  document.querySelectorAll("[data-cat-up]").forEach(btn => {
+    btn.onclick = () => {
+      const i = Number(btn.dataset.catUp);
+      if (i === 0) return;
+      const arr = [...allCats];
+      [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]];
+      settingsState.categoryOrder = arr;
+      localStorage.setItem("jt_category_order", JSON.stringify(arr));
+      renderSettingsView();
+    };
+  });
+
+  document.querySelectorAll("[data-cat-down]").forEach(btn => {
+    btn.onclick = () => {
+      const i = Number(btn.dataset.catDown);
+      if (i === allCats.length - 1) return;
+      const arr = [...allCats];
+      [arr[i], arr[i + 1]] = [arr[i + 1], arr[i]];
+      settingsState.categoryOrder = arr;
+      localStorage.setItem("jt_category_order", JSON.stringify(arr));
+      renderSettingsView();
+    };
+  });
+}
+
 /* ── Boot ─────────────────────────────────────────────────────────────────── */
 function init() {
   // Wire bottom nav
   document.querySelectorAll(".nav-tab").forEach(btn => {
     btn.onclick = () => navigate(btn.dataset.view);
   });
+
+  // Settings
+  document.getElementById("settings-btn").onclick = () => navigate("settings");
 
   // Logout
   document.getElementById("logout-btn").onclick = () => {
