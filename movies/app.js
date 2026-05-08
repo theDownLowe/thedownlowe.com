@@ -46,11 +46,17 @@ let dragListMovieSrcId = null;   // movie-within-list drag
 let currentDragListId  = null;   // which list the movie drag is in
 let rankingsPage = 1;
 const PAGE_SIZE  = 20;
-let chatMessages  = [];
+let chatMessages      = [];
+let olderMessages     = [];   // pages loaded via "Load earlier"
+let chatHasMore       = false; // server has messages older than current view
+let chatReachedStart  = false; // no more pages to load
+let chatLoadingEarlier = false;
 const _savedChat = localStorage.getItem("chatMinimized");
 let chatMinimized = _savedChat !== null ? _savedChat === "true" : window.innerWidth <= 900;
 let chatUnread    = 0;
 let chatVisible   = true; // tracks if user is scrolled to bottom
+let chatInitialized = false;
+const chatLastSeenAt = localStorage.getItem("chatLastSeenAt") || "";
 
 const pendingDeletes = new Set();
 const pendingVotes   = new Map();
@@ -555,30 +561,78 @@ function timeAgo(iso) {
 // ── Chat ──────────────────────────────────────────────────────────────────────
 async function loadChat() {
   try {
-    const res  = await fetch(`${API}/chat`);
-    const msgs = await res.json();
-    if (JSON.stringify(msgs) === JSON.stringify(chatMessages)) return;
-    const isNew    = msgs.length > chatMessages.length;
-    const wasAtBottom = isChatAtBottom();
-    chatMessages = msgs;
-    renderChat();
-    if (isNew && wasAtBottom) scrollChatToBottom();
-    if (isNew && chatMinimized) {
-      chatUnread++;
-      const badge = document.getElementById("chatBadge");
-      badge.textContent = chatUnread;
-      badge.style.display = "inline";
+    const res = await fetch(`${API}/chat`);
+    const { messages, hasMore } = await res.json();
+    if (JSON.stringify(messages) === JSON.stringify(chatMessages)) return;
+    const wasAtBottom  = isChatAtBottom();
+    const latestKnown  = chatMessages.length ? chatMessages[chatMessages.length - 1].createdAt : null;
+    if (!chatInitialized) {
+      // First load: badge messages that arrived since user last had chat open
+      const missed = chatLastSeenAt ? messages.filter(m => m.createdAt > chatLastSeenAt).length : 0;
+      if (missed > 0 && chatMinimized) {
+        chatUnread = missed;
+        const badge = document.getElementById("chatBadge");
+        badge.textContent = missed;
+        badge.style.display = "inline";
+      }
+      chatInitialized = true;
+      if (olderMessages.length === 0) chatHasMore = hasMore;
+    } else {
+      // Subsequent polls: count genuinely new messages
+      const newCount = latestKnown ? messages.filter(m => m.createdAt > latestKnown).length : 0;
+      if (newCount > 0 && chatMinimized) {
+        chatUnread += newCount;
+        const badge = document.getElementById("chatBadge");
+        badge.textContent = chatUnread;
+        badge.style.display = "inline";
+      }
+      if (olderMessages.length === 0) chatHasMore = hasMore;
     }
+    chatMessages = messages;
+    renderChat();
+    if (wasAtBottom) scrollChatToBottom();
   } catch (e) { console.error("Chat load failed:", e); }
+}
+
+async function loadEarlierChat() {
+  if (chatLoadingEarlier || chatReachedStart) return;
+  chatLoadingEarlier = true;
+  const btn = document.querySelector(".load-earlier-btn");
+  if (btn) btn.textContent = "Loading…";
+  const oldest = olderMessages.length ? olderMessages[0].createdAt
+                                      : chatMessages.length ? chatMessages[0].createdAt : null;
+  if (!oldest) { chatLoadingEarlier = false; return; }
+  try {
+    const res = await fetch(`${API}/chat?before=${encodeURIComponent(oldest)}`);
+    const { messages, hasMore } = await res.json();
+    const container = document.getElementById("chatMessages");
+    const prevScrollHeight = container.scrollHeight;
+    // Deduplicate by messageId then prepend
+    const existingIds = new Set([...olderMessages, ...chatMessages].map(m => m.messageId));
+    olderMessages = [...messages.filter(m => !existingIds.has(m.messageId)), ...olderMessages];
+    chatHasMore = hasMore;
+    if (!hasMore) chatReachedStart = true;
+    renderChat();
+    container.scrollTop = container.scrollHeight - prevScrollHeight;
+  } catch (e) { console.error("Load earlier failed:", e); }
+  finally { chatLoadingEarlier = false; }
 }
 
 function renderChat() {
   const container = document.getElementById("chatMessages");
-  if (!chatMessages.length) {
-    container.innerHTML = '<div class="chat-empty">No messages yet. Say hi!</div>';
+  const seen    = new Set();
+  const allMsgs = [...olderMessages, ...chatMessages]
+    .filter(m => seen.has(m.messageId) ? false : (seen.add(m.messageId), true));
+
+  const loadEarlierHtml = (chatHasMore && !chatReachedStart)
+    ? `<button class="load-earlier-btn" onclick="loadEarlierChat()">Load earlier messages</button>`
+    : "";
+
+  if (!allMsgs.length) {
+    container.innerHTML = loadEarlierHtml || '<div class="chat-empty">No messages yet. Say hi!</div>';
     return;
   }
-  container.innerHTML = chatMessages.map(m => {
+  container.innerHTML = loadEarlierHtml + allMsgs.map(m => {
     const isOwn = auth?.username === m.username;
     const time  = formatChatTime(m.createdAt);
     return `<div class="chat-msg${isOwn ? " own" : ""}">
@@ -626,6 +680,8 @@ function toggleChat() {
   if (!chatMinimized) {
     chatUnread = 0;
     document.getElementById("chatBadge").style.display = "none";
+    const _allMsgs = [...olderMessages, ...chatMessages];
+    if (_allMsgs.length) localStorage.setItem("chatLastSeenAt", _allMsgs[_allMsgs.length - 1].createdAt);
     setTimeout(scrollChatToBottom, 50);
   }
 }
@@ -741,9 +797,9 @@ function buildCard(m, rank, mode, listId = null) {
       ${poster}
       <div class="movie-info">${titleEl}<div class="movie-meta">${metaParts}</div></div>
       <div class="vote-area">
-        <button class="vote-btn up${hasVotedUp ? " active" : ""}" onclick="vote('${m.movieId}',1)" title="Thumbs up">▲</button>
-        <span class="score ${cls}">${s > 0 ? "+" : ""}${s}</span>
         <button class="vote-btn down${hasVotedDown ? " active" : ""}" onclick="vote('${m.movieId}',-1)" title="Thumbs down">▼</button>
+        <span class="score ${cls}">${s > 0 ? "+" : ""}${s}</span>
+        <button class="vote-btn up${hasVotedUp ? " active" : ""}" onclick="vote('${m.movieId}',1)" title="Thumbs up">▲</button>
         <button class="vote-btn seen-vote-btn${hasSeen ? " active" : ""}" onclick="toggleSeen('${m.movieId}')" title="${hasSeen ? "Unmark as seen" : "Mark as seen"}">👁</button>
       </div>
     </div>
@@ -962,10 +1018,20 @@ function goToPage(page) {
 
 updateAuthUI();
 
-// On mobile, start with chat minimized so the slide-up panel begins off-screen
+// Apply saved chat state on load
 if (chatMinimized) {
   document.getElementById("chatPanel").classList.add("minimized");
   document.getElementById("chatToggleBtn").textContent = "◀";
+  if (window.innerWidth > 900) {
+    document.querySelector(".page-wrapper").style.marginRight = "0";
+  }
 }
 
-loadAll().then(() => { startPolling(); if (!chatMinimized) scrollChatToBottom(); });
+loadAll().then(() => {
+  startPolling();
+  if (!chatMinimized) {
+    const _allMsgs = [...olderMessages, ...chatMessages];
+    if (_allMsgs.length) localStorage.setItem("chatLastSeenAt", _allMsgs[_allMsgs.length - 1].createdAt);
+    scrollChatToBottom();
+  }
+});

@@ -407,6 +407,21 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 .chat-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
 
 .chat-loading, .chat-empty { font-size: 0.82rem; color: rgba(255,255,255,0.3); text-align: center; padding: 1rem 0; }
+.load-earlier-btn {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.4);
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-align: center;
+  margin-bottom: 8px;
+  transition: color 0.1s, background 0.1s;
+}
+.load-earlier-btn:hover { color: rgba(255,255,255,0.75); background: rgba(255,255,255,0.04); }
 
 .chat-msg { display: flex; flex-direction: column; gap: 2px; max-width: 88%; }
 .chat-msg.own { align-self: flex-end; align-items: flex-end; }
@@ -451,6 +466,9 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
   .chat-panel.minimized .chat-body { display: flex; }
   .chat-panel.minimized .chat-header { border-bottom: 1px solid rgba(255,255,255,0.08); border-radius: 0; }
 
+  /* Move close button to the right of the chat header */
+  .chat-toggle-btn { order: 1; margin-left: auto; }
+
   /* Floating chat button */
   .chat-tab {
     display: flex;
@@ -474,8 +492,8 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 
 /* ── Tablet / large phone ── */
 @media (max-width: 600px) {
+  /* Poster stays left, title/details to its right; only vote buttons wrap below */
   .card-main { flex-wrap: wrap; gap: 10px; padding: 10px 12px; }
-  .movie-info { min-width: calc(100% - 90px); }
   .vote-area { width: 100%; justify-content: flex-end; padding-top: 2px; border-top: 1px solid #f0ece8; }
   .vote-btn { width: 34px; height: 34px; }
   .movie-title, a.imdb-link { white-space: normal; }
@@ -489,8 +507,7 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
   .poster-placeholder { width: 52px; height: 75px; }
   .auth-modal { padding: 1.25rem; }
   .queue-side-btn { width: 32px; }
-  .add-comment-row { flex-direction: column; }
-  .comment-submit-btn { width: 100%; }
+
   .app { padding: 1.5rem 0.75rem 5rem; }
   .logo { font-size: 1.6rem; }
   .main-tab { padding: 8px 14px; }
