@@ -1432,8 +1432,13 @@ function openDealModal(deal) {
       <input type="text" id="d-name" value="${deal?.name || ""}" placeholder="e.g. 3 Jumbo Clips for $30" />
     </div>
     <div class="form-group">
-      <label>Category Tag * <span style="font-weight:400;color:var(--text-muted)">(single tag)</span></label>
-      <input type="text" id="d-cat" value="${deal?.category || ""}" placeholder="e.g. jumbo" />
+      <label>Category Tag *</label>
+      <select id="d-cat">
+        <option value="">— select a category —</option>
+        ${getInventoryCategories().map(c =>
+          `<option value="${c}"${(deal?.category || "") === c ? " selected" : ""}>${c}</option>`
+        ).join("")}
+      </select>
       <p style="font-size:.78rem;color:var(--text-muted);margin-top:4px">Matches items whose categories include this tag (case-insensitive)</p>
     </div>
     <div class="form-group">
