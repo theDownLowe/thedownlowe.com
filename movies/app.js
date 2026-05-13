@@ -132,8 +132,9 @@ async function selectMovie(imdbId, title) {
   document.getElementById("movieInput").value = selected.title;
   const meta = [selected.year, selected.runtime, selected.imdbRating ? `★ ${selected.imdbRating}` : null].filter(Boolean).join(" · ");
   preview.innerHTML = `${selected.posterUrl ? `<img src="${selected.posterUrl}" alt="${escHtml(selected.title)}" />` : ""}<div class="preview-info"><div class="preview-title">${escHtml(selected.title)}</div><div class="preview-meta">${meta}</div></div><button class="preview-clear" onclick="clearSelected()">✕</button>`;
+  document.getElementById("addBtn").style.display = "block";
 }
-function clearSelected() { selected = null; document.getElementById("movieInput").value = ""; document.getElementById("preview").classList.remove("show"); document.getElementById("preview").innerHTML = ""; document.getElementById("movieInput").focus(); }
+function clearSelected() { selected = null; document.getElementById("movieInput").value = ""; document.getElementById("preview").classList.remove("show"); document.getElementById("preview").innerHTML = ""; document.getElementById("addBtn").style.display = "none"; document.getElementById("movieInput").focus(); }
 
 // ── Auth modal ────────────────────────────────────────────────────────────────
 function openAuthModal(mode = "login") { document.getElementById("authModal").classList.add("open"); setAuthMode(mode); }
