@@ -888,7 +888,6 @@ function setSort(mode, el) {
   sortMode = mode;
   rankingsPage = 1;
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active")); el.classList.add("active");
-  document.getElementById("sortLabel").textContent = mode === "score" ? "sorted by most wanted" : "sorted by newest";
   render();
 }
 function sorted() {
