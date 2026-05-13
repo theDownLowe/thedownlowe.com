@@ -201,9 +201,12 @@ function toggleListDropdown(movieId, btnEl) {
 function renderListDropdown(movieId, btnEl) {
   const portal = document.getElementById("list-dropdown-portal");
   const rect   = btnEl.getBoundingClientRect();
-  portal.style.top     = `${rect.bottom + 4}px`;
+
+  // Align right edge with button, render off-screen first to measure height
   portal.style.right   = `${window.innerWidth - rect.right}px`;
   portal.style.left    = "auto";
+  portal.style.top     = "-9999px";
+  portal.style.bottom  = "auto";
   portal.style.display = "block";
 
   const inQueue   = queueIds.includes(movieId);
@@ -234,6 +237,22 @@ function renderListDropdown(movieId, btnEl) {
     <div class="dd-divider"></div>
     <button class="dd-create-btn" onclick="openCreateListModal('${movieId}')">+ Create new list</button>
   </div>`;
+
+  // Measure then flip above/below based on available space
+  const dropdown   = portal.querySelector(".list-dropdown");
+  const dropH      = dropdown.offsetHeight;
+  const spaceBelow = window.innerHeight - rect.bottom - 8;
+  const spaceAbove = rect.top - 8;
+
+  if (spaceBelow >= dropH || spaceBelow >= spaceAbove) {
+    portal.style.top    = `${rect.bottom + 4}px`;
+    portal.style.bottom = "auto";
+    dropdown.style.maxHeight = `${Math.max(120, spaceBelow)}px`;
+  } else {
+    portal.style.top    = "auto";
+    portal.style.bottom = `${window.innerHeight - rect.top + 4}px`;
+    dropdown.style.maxHeight = `${Math.max(120, spaceAbove)}px`;
+  }
 }
 
 function closeListDropdown() {
