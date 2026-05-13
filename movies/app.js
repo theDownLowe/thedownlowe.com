@@ -1219,7 +1219,7 @@ function renderListPanel(l) {
   const movieCount = (l.movieIds || []).length;
 
   const posterMovies = !isEditing
-    ? (l.movieIds || []).map(id => movies.find(m => m.movieId === id)).filter(m => m?.posterUrl).slice(0, 5)
+    ? (l.movieIds || []).map(id => movies.find(m => m.movieId === id)).filter(m => m?.posterUrl).slice(0, 10)
     : [];
   const posterStrip = posterMovies.length
     ? `<div class="list-poster-strip">${posterMovies.map(m =>
@@ -1241,7 +1241,7 @@ function renderListPanel(l) {
         <span class="list-title-text">${escHtml(l.title)}</span>
         <span class="list-count">${movieCount} film${movieCount !== 1 ? "s" : ""}</span>
       </div>
-      ${l.description ? `<div class="list-desc-text">${escHtml(l.description)}</div>` : ""}
+      ${l.description ? `<div class="list-desc-text" title="${escHtml(l.description)}">${escHtml(l.description)}</div>` : ""}
       <div class="list-creator">by ${escHtml(l.createdBy)}</div>
     </div>
     ${posterStrip}

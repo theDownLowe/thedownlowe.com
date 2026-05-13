@@ -418,7 +418,7 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 .list-title-row { display: flex; align-items: baseline; gap: 8px; }
 .list-title-text { font-size: 1rem; font-weight: 600; color: var(--text); }
 .list-count { font-size: 0.75rem; color: var(--muted); }
-.list-desc-text { font-size: 0.82rem; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+.list-desc-text { font-size: 0.82rem; color: var(--muted); margin-top: 3px; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
 .list-creator { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
 
 .list-header-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; margin-left: 8px; }
@@ -444,8 +444,8 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 .list-body { border-top: 1px solid var(--border); padding: 10px; display: flex; flex-direction: column; gap: 8px; background: #faf9f7; }
 
 /* ── List poster strip (collapsed header thumbnails) ── */
-.list-poster-strip { display: flex; align-items: center; flex-shrink: 0; margin: 0 6px; }
-.list-poster-thumb { width: 22px; height: 30px; object-fit: cover; border-radius: 3px; border: 1.5px solid #fff; flex-shrink: 0; margin-left: -6px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+.list-poster-strip { display: flex; align-items: center; flex-shrink: 0; margin: 0 6px; max-width: 200px; overflow: hidden; }
+.list-poster-thumb { width: 26px; height: 38px; object-fit: cover; border-radius: 3px; border: 1.5px solid #fff; flex-shrink: 0; margin-left: -9px; box-shadow: 0 1px 3px rgba(0,0,0,0.18); }
 .list-poster-thumb:first-child { margin-left: 0; }
 
 /* ── List inline add-movie search ── */
