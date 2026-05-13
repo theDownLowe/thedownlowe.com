@@ -582,6 +582,8 @@ async function moveToWatched(movieId) {
 
 async function removeFromWatched(movieId) {
   if (!auth) { openAuthModal(); return; }
+  const movie = movies.find(m => m.movieId === movieId);
+  if (!confirm(`Remove "${movie?.title || "this movie"}" from Watched?`)) return;
   watchedIds = watchedIds.filter(id => id !== movieId);
   const { [movieId]: _drop, ...restDates } = watchedDates;
   watchedDates = restDates;
