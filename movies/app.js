@@ -1152,7 +1152,7 @@ function buildCard(m, rank, mode, listId = null) {
     ${mode === "nominations" ? `<button class="delete-btn-corner" onclick="deleteMovie('${m.movieId}')" title="Remove">✕</button>` : ""}
     ${badgesEl}
     <div class="card-main">
-      <span class="rank">${rank}</span>
+      ${rank != null ? `<span class="rank">${rank}</span>` : ""}
       ${poster}
       <div class="movie-info">${titleEl}<div class="movie-meta">${metaParts}</div></div>
       <div class="vote-area">
@@ -1205,7 +1205,7 @@ function renderWatched() {
     return;
   }
   const watchedMovies = watchedIds.map(id => movies.find(m => m.movieId === id)).filter(Boolean);
-  list.innerHTML = watchedMovies.map((m, i) => buildCard(m, i + 1, "watched")).join("");
+  list.innerHTML = watchedMovies.map(m => buildCard(m, null, "watched")).join("");
   reattachComments();
 }
 
