@@ -310,6 +310,18 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 
 /* ── Card footer ── */
 .card-footer { border-top: 1px solid #f0ece8; padding: 8px 14px; display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 12px; background: #faf9f7; }
+
+/* ── Watched date row ── */
+.watched-date-row { display: flex; align-items: center; gap: 6px; width: 100%; padding-bottom: 4px; }
+.watched-date-text { font-size: 0.78rem; color: var(--muted); font-weight: 500; }
+.watched-date-edit { background: none; border: none; cursor: pointer; font-size: 0.72rem; color: var(--muted); padding: 2px 5px; border-radius: 4px; line-height: 1; transition: background 0.1s, color 0.1s; }
+.watched-date-edit:hover { background: #ede9e4; color: var(--text); }
+.watched-date-input { padding: 3px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.82rem; color: var(--text); background: var(--surface); outline: none; }
+.watched-date-input:focus { border-color: var(--green); }
+.watched-date-save { padding: 3px 10px; background: var(--green); color: #fff; border: none; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: opacity 0.1s; }
+.watched-date-save:hover { opacity: 0.85; }
+.watched-date-cancel { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 0.85rem; padding: 2px 4px; border-radius: 4px; }
+.watched-date-cancel:hover { background: #ede9e4; color: var(--text); }
 .voter-names { font-size: 0.75rem; font-weight: 500; }
 .voter-names.up   { color: var(--green); }
 .voter-names.down { color: var(--red); }

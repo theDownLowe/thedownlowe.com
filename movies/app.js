@@ -31,6 +31,8 @@ function jsonHeaders() {
 let movies             = [];
 let queueIds           = [];
 let watchedIds         = [];
+let watchedDates       = {};
+let editingWatchedDate = null;
 let lists              = [];   // array of list objects
 let listOrder          = [];   // ordered listIds
 let activeTab          = "nominations";
@@ -274,9 +276,11 @@ async function onDropdownWatchedChange(movieId, checked, cbEl) {
   cbEl.disabled = true;
   try {
     if (checked) {
-      watchedIds = [movieId, ...watchedIds.filter(id => id !== movieId)];
+      const now = new Date().toISOString();
+      watchedIds   = [movieId, ...watchedIds.filter(id => id !== movieId)];
+      watchedDates = { ...watchedDates, [movieId]: now };
       render();
-      await fetch(`${API}/watched`, { method: "POST", headers: jsonHeaders(), body: JSON.stringify({ movieId }) });
+      await fetch(`${API}/watched`, { method: "POST", headers: jsonHeaders(), body: JSON.stringify({ movieId, watchedAt: now }) });
     } else {
       await removeFromWatched(movieId);
     }
@@ -505,6 +509,8 @@ async function deleteMovie(movieId) {
   movies     = movies.filter(m => m.movieId !== movieId);
   queueIds   = queueIds.filter(id => id !== movieId);
   watchedIds = watchedIds.filter(id => id !== movieId);
+  const { [movieId]: _dropDate, ...restDates } = watchedDates;
+  watchedDates = restDates;
   nowWatching.delete(movieId);
   lists      = lists.map(l => ({ ...l, movieIds: (l.movieIds || []).filter(id => id !== movieId) }));
   render();
@@ -550,17 +556,21 @@ function toggleNowWatching(movieId) {
 
 async function moveToWatched(movieId) {
   if (!auth) { openAuthModal(); return; }
+  const now = new Date().toISOString();
   nowWatching.delete(movieId);
-  queueIds   = queueIds.filter(id => id !== movieId);
-  watchedIds = [movieId, ...watchedIds.filter(id => id !== movieId)];
+  queueIds     = queueIds.filter(id => id !== movieId);
+  watchedIds   = [movieId, ...watchedIds.filter(id => id !== movieId)];
+  watchedDates = { ...watchedDates, [movieId]: now };
   render();
-  try { await fetch(`${API}/watched`, { method: "POST", headers: jsonHeaders(), body: JSON.stringify({ movieId }) }); }
+  try { await fetch(`${API}/watched`, { method: "POST", headers: jsonHeaders(), body: JSON.stringify({ movieId, watchedAt: now }) }); }
   catch (e) { console.error("Move to watched failed:", e); }
 }
 
 async function removeFromWatched(movieId) {
   if (!auth) { openAuthModal(); return; }
   watchedIds = watchedIds.filter(id => id !== movieId);
+  const { [movieId]: _drop, ...restDates } = watchedDates;
+  watchedDates = restDates;
   render();
   try { await fetch(`${API}/watched/${movieId}`, { method: "DELETE", headers: jsonHeaders() }); }
   catch (e) { console.error("Remove from watched failed:", e); }
@@ -1077,7 +1087,7 @@ function buildCard(m, rank, mode, listId = null) {
 
   const collectionBadges = (mode === "nominations" || mode === "list") ? [
     queueIds.includes(m.movieId)   ? `<span class="collection-badge badge-queue">In Queue</span>`         : "",
-    watchedIds.includes(m.movieId) ? `<span class="collection-badge badge-watched">Theater Watched</span>` : "",
+    watchedIds.includes(m.movieId) ? `<span class="collection-badge badge-watched">${formatWatchedDateShort(watchedDates[m.movieId]) ? `Watched ${formatWatchedDateShort(watchedDates[m.movieId])}` : "Theater Watched"}</span>` : "",
   ].filter(Boolean).join("") : "";
   const badgesEl = collectionBadges ? `<div class="collection-badges">${collectionBadges}</div>` : "";
 
@@ -1094,6 +1104,22 @@ function buildCard(m, rank, mode, listId = null) {
     downNames.length ? `<span class="voter-names down">▼ ${downNames.join(", ")}</span>` : "",
     seenNames.length ? `<span class="voter-names seen">👁 ${seenNames.join(", ")}</span>` : "",
   ].filter(Boolean).join("");
+
+  const watchedDateRow = mode === "watched" ? (() => {
+    const isEditing = editingWatchedDate === m.movieId;
+    if (isEditing) {
+      return `<div class="watched-date-row">
+        <input type="date" id="watchedDateInput-${m.movieId}" class="watched-date-input" value="${watchedDateToInputValue(watchedDates[m.movieId])}" />
+        <button class="watched-date-save" onclick="saveWatchedDate('${m.movieId}')">Save</button>
+        <button class="watched-date-cancel" onclick="cancelEditWatchedDate()">✕</button>
+      </div>`;
+    }
+    const dateStr = formatWatchedDate(watchedDates[m.movieId]);
+    return `<div class="watched-date-row">
+      <span class="watched-date-text">Watched${dateStr ? ` ${dateStr}` : ""}</span>
+      ${auth ? `<button class="watched-date-edit" onclick="startEditWatchedDate('${m.movieId}')" title="Edit watched date">✏</button>` : ""}
+    </div>`;
+  })() : "";
 
   const isNowWatching = mode === "queue" && nowWatching.has(m.movieId);
 
@@ -1163,6 +1189,7 @@ function buildCard(m, rank, mode, listId = null) {
       </div>
     </div>
     <div class="card-footer">
+      ${watchedDateRow}
       ${footerContent}
       <div class="comments-toggle-row">${commentsToggle}</div>
     </div>
@@ -1189,6 +1216,42 @@ function buildCard(m, rank, mode, listId = null) {
   return cardEl;
 }
 
+// ── Watched date helpers ──────────────────────────────────────────────────────
+function formatWatchedDate(iso) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+function formatWatchedDateShort(iso) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+function watchedDateToInputValue(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+function startEditWatchedDate(movieId) {
+  editingWatchedDate = movieId;
+  render();
+  setTimeout(() => document.getElementById(`watchedDateInput-${movieId}`)?.focus(), 50);
+}
+function cancelEditWatchedDate() {
+  editingWatchedDate = null;
+  render();
+}
+async function saveWatchedDate(movieId) {
+  const input = document.getElementById(`watchedDateInput-${movieId}`);
+  if (!input?.value) return;
+  // Parse the date input as local midnight, convert to ISO
+  const [y, mo, d] = input.value.split("-").map(Number);
+  const watchedAt = new Date(y, mo - 1, d).toISOString();
+  watchedDates = { ...watchedDates, [movieId]: watchedAt };
+  editingWatchedDate = null;
+  render();
+  try { await fetch(`${API}/watched/${movieId}`, { method: "PUT", headers: jsonHeaders(), body: JSON.stringify({ watchedAt }) }); }
+  catch (e) { console.error("Failed to update watched date:", e); }
+}
+
 // ── Render ────────────────────────────────────────────────────────────────────
 function render() {
   updateAuthUI();
@@ -1204,7 +1267,14 @@ function renderWatched() {
     list.innerHTML = '<div class="empty">Nothing watched yet — move movies here from the Queue!</div>';
     return;
   }
-  const watchedMovies = watchedIds.map(id => movies.find(m => m.movieId === id)).filter(Boolean);
+  const watchedMovies = watchedIds
+    .map(id => movies.find(m => m.movieId === id))
+    .filter(Boolean)
+    .sort((a, b) => {
+      const da = watchedDates[a.movieId] || "";
+      const db = watchedDates[b.movieId] || "";
+      return db.localeCompare(da);
+    });
   list.innerHTML = watchedMovies.map(m => buildCard(m, null, "watched")).join("");
   reattachComments();
 }
@@ -1378,8 +1448,13 @@ async function loadLists() {
 async function loadWatched() {
   try {
     const res = await fetch(`${API}/watched`), data = await res.json();
-    const ids = data.movieIds || [];
-    if (JSON.stringify(ids) !== JSON.stringify(watchedIds)) { watchedIds = ids; render(); }
+    const ids   = data.movieIds    || [];
+    const dates = data.watchedDates || {};
+    if (JSON.stringify(ids) !== JSON.stringify(watchedIds) || JSON.stringify(dates) !== JSON.stringify(watchedDates)) {
+      watchedIds   = ids;
+      watchedDates = dates;
+      render();
+    }
   } catch (e) { console.error("Failed to load watched:", e); }
 }
 async function loadAll() {

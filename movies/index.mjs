@@ -79,6 +79,7 @@ export const handler = async (event) => {
     // Watched
     if (method === "GET"    && s0 === "watched" && !s1) return await getWatched();
     if (method === "POST"   && s0 === "watched" && !s1) return await addToWatched(event);
+    if (method === "PUT"    && s0 === "watched" &&  s1) return await updateWatchedDate(event, s1);
     if (method === "DELETE" && s0 === "watched" &&  s1) return await removeFromWatched(event, s1);
 
     // Lists
@@ -272,34 +273,49 @@ async function reorderQueue(event) {
 
 async function getWatched() {
   const res = await ddb.send(new GetCommand({ TableName: "queue", Key: { queueId: "watched" } }));
-  return ok({ movieIds: res.Item?.movieIds || [] });
+  return ok({ movieIds: res.Item?.movieIds || [], watchedDates: res.Item?.watchedDates || {} });
 }
 
 async function addToWatched(event) {
   const username = getUser(event);
   if (!username) return err(401, "Login required");
-  const { movieId } = JSON.parse(event.body || "{}");
+  const { movieId, watchedAt } = JSON.parse(event.body || "{}");
   if (!movieId) return err(400, "movieId required");
   const [watchedRes, queueRes] = await Promise.all([
     ddb.send(new GetCommand({ TableName: "queue", Key: { queueId: "watched" } })),
     ddb.send(new GetCommand({ TableName: "queue", Key: { queueId: "main" } })),
   ]);
-  const watchedIds = [movieId, ...(watchedRes.Item?.movieIds || []).filter(id => id !== movieId)];
-  const queueIds   = (queueRes.Item?.movieIds  || []).filter(id => id !== movieId);
+  const watchedIds   = [movieId, ...(watchedRes.Item?.movieIds || []).filter(id => id !== movieId)];
+  const watchedDates = { ...(watchedRes.Item?.watchedDates || {}), [movieId]: watchedAt || new Date().toISOString() };
+  const queueIds     = (queueRes.Item?.movieIds || []).filter(id => id !== movieId);
   await Promise.all([
-    ddb.send(new PutCommand({ TableName: "queue", Item: { queueId: "watched", movieIds: watchedIds } })),
+    ddb.send(new PutCommand({ TableName: "queue", Item: { queueId: "watched", movieIds: watchedIds, watchedDates } })),
     ddb.send(new PutCommand({ TableName: "queue", Item: { queueId: "main",    movieIds: queueIds  } })),
   ]);
-  return ok({ movieIds: watchedIds, queueIds });
+  return ok({ movieIds: watchedIds, queueIds, watchedDates });
+}
+
+async function updateWatchedDate(event, movieId) {
+  const username = getUser(event);
+  if (!username) return err(401, "Login required");
+  const { watchedAt } = JSON.parse(event.body || "{}");
+  if (!watchedAt) return err(400, "watchedAt required");
+  const res = await ddb.send(new GetCommand({ TableName: "queue", Key: { queueId: "watched" } }));
+  if (!(res.Item?.movieIds || []).includes(movieId)) return err(404, "Movie not in watched list");
+  const watchedDates = { ...(res.Item?.watchedDates || {}), [movieId]: watchedAt };
+  await ddb.send(new PutCommand({ TableName: "queue", Item: { ...res.Item, watchedDates } }));
+  return ok({ watchedDates });
 }
 
 async function removeFromWatched(event, movieId) {
   const username = getUser(event);
   if (!username) return err(401, "Login required");
   const res = await ddb.send(new GetCommand({ TableName: "queue", Key: { queueId: "watched" } }));
-  const movieIds = (res.Item?.movieIds || []).filter(id => id !== movieId);
-  await ddb.send(new PutCommand({ TableName: "queue", Item: { queueId: "watched", movieIds } }));
-  return ok({ movieIds });
+  const movieIds     = (res.Item?.movieIds || []).filter(id => id !== movieId);
+  const watchedDates = { ...(res.Item?.watchedDates || {}) };
+  delete watchedDates[movieId];
+  await ddb.send(new PutCommand({ TableName: "queue", Item: { queueId: "watched", movieIds, watchedDates } }));
+  return ok({ movieIds, watchedDates });
 }
 
 // ── Lists ─────────────────────────────────────────────────────────────────────
