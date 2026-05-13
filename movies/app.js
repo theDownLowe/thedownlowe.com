@@ -42,8 +42,10 @@ let authModalMode      = "login";
 let openDropdownMovieId = null;  // which movie has its list-dropdown open
 let createListForMovieId = null; // movieId that triggered create modal
 let editingListId      = null;   // listId being edited inline
-let listAddSearchOpen  = null;   // listId with inline add-search open
+let listAddSearchOpen   = null;   // listId with inline add-search open
 let modalSelectedMovies = [];    // movies staged in the create-list modal
+let modalSearchTimer    = null;
+let listAddSearchTimer  = null;
 let dragSrcId          = null;   // queue drag
 let dragListSrcId      = null;   // list-panel drag
 let dragListMovieSrcId = null;   // movie-within-list drag
@@ -285,12 +287,30 @@ function movieInAnyCollection(movieId) {
   return queueIds.includes(movieId) || watchedIds.includes(movieId) || lists.some(l => (l.movieIds || []).includes(movieId));
 }
 
+// ── Resolve / create a movie in the DB from OMDB data ─────────────────────────
+async function resolveOrCreateMovie(omdbData) {
+  const existing = movies.find(m => (omdbData.imdbId && m.imdbId === omdbData.imdbId) || (omdbData.movieId && m.movieId === omdbData.movieId));
+  if (existing) return existing.movieId;
+  const res = await fetch(`${API}/movies`, {
+    method: "POST", headers: jsonHeaders(),
+    body: JSON.stringify({ title: omdbData.title, posterUrl: omdbData.posterUrl || null, year: omdbData.year || null, imdbRating: omdbData.imdbRating || null, runtime: omdbData.runtime || null, imdbId: omdbData.imdbId || null }),
+  });
+  const movie = await res.json();
+  if (res.status === 409) {
+    const found = movies.find(m => m.title.toLowerCase() === omdbData.title.toLowerCase());
+    if (found) return found.movieId;
+  }
+  if (!res.ok) throw new Error(movie.error || "Failed to add movie");
+  if (!movies.find(m => m.movieId === movie.movieId)) movies.push(movie);
+  return movie.movieId;
+}
+
 // ── Create list modal ─────────────────────────────────────────────────────────
 function openCreateListModal(movieId) {
   createListForMovieId = movieId;
   closeListDropdown();
   const seed = movieId ? movies.find(m => m.movieId === movieId) : null;
-  modalSelectedMovies = seed ? [{ movieId: seed.movieId, title: seed.title, posterUrl: seed.posterUrl }] : [];
+  modalSelectedMovies = seed ? [{ movieId: seed.movieId, imdbId: seed.imdbId || null, title: seed.title, posterUrl: seed.posterUrl }] : [];
   document.getElementById("newListTitle").value = "";
   document.getElementById("newListDesc").value  = "";
   document.getElementById("createListError").textContent = "";
@@ -318,51 +338,57 @@ async function submitCreateList() {
     lists     = [data.list, ...lists];
     listOrder = data.listOrder;
     if (modalSelectedMovies.length) {
-      const listId = data.list.listId;
-      await Promise.all(modalSelectedMovies.map(m =>
-        fetch(`${API}/lists/${listId}/movies`, { method: "POST", headers: jsonHeaders(), body: JSON.stringify({ movieId: m.movieId }) })
+      const listId  = data.list.listId;
+      const movieIds = await Promise.all(modalSelectedMovies.map(m => resolveOrCreateMovie(m)));
+      await Promise.all(movieIds.map(movieId =>
+        fetch(`${API}/lists/${listId}/movies`, { method: "POST", headers: jsonHeaders(), body: JSON.stringify({ movieId }) })
       ));
       const list = lists.find(l => l.listId === listId);
-      if (list) list.movieIds = modalSelectedMovies.map(m => m.movieId);
+      if (list) list.movieIds = movieIds;
     }
     closeCreateListModal();
     if (activeTab === "lists") render();
   } catch (e) { errorEl.textContent = "Connection error."; }
 }
 
-// ── Modal movie search ────────────────────────────────────────────────────────
+// ── Modal movie search (OMDB) ─────────────────────────────────────────────────
 function onModalMovieSearch(query) {
-  const q       = query.trim().toLowerCase();
+  clearTimeout(modalSearchTimer);
+  const q       = query.trim();
   const results = document.getElementById("modalMovieResults");
-  if (!q) { results.style.display = "none"; results.innerHTML = ""; return; }
-  const matches = movies
-    .filter(m => (m.title || "").toLowerCase().includes(q) && !modalSelectedMovies.some(s => s.movieId === m.movieId))
-    .slice(0, 6);
-  if (!matches.length) {
-    results.innerHTML = '<div class="modal-movie-no-results">No matches</div>';
-    results.style.display = "block";
-    return;
-  }
-  results.innerHTML = matches.map(m => `
-    <div class="modal-movie-result-item" onmousedown="selectModalMovie('${m.movieId}')">
-      ${m.posterUrl ? `<img src="${escHtml(m.posterUrl)}" alt="" />` : `<div class="modal-result-placeholder">🎬</div>`}
-      <span class="modal-result-title">${escHtml(m.title)}</span>
-      ${m.year ? `<span class="modal-result-year">${m.year}</span>` : ""}
-    </div>`).join("");
+  if (!q || q.length < 2) { results.style.display = "none"; results.innerHTML = ""; return; }
+  results.innerHTML = '<div class="modal-movie-no-results">Searching…</div>';
   results.style.display = "block";
+  modalSearchTimer = setTimeout(async () => {
+    const matches = await searchOMDB(q);
+    if (!matches.length) { results.innerHTML = '<div class="modal-movie-no-results">No results found</div>'; return; }
+    results.innerHTML = matches.slice(0, 6).map(r => `
+      <div class="modal-movie-result-item" onmousedown="selectModalMovieFromOMDB('${r.imdbID}')">
+        ${r.Poster !== "N/A" ? `<img src="${escHtml(r.Poster)}" alt="" />` : `<div class="modal-result-placeholder">🎬</div>`}
+        <span class="modal-result-title">${escHtml(r.Title)}</span>
+        ${r.Year ? `<span class="modal-result-year">${r.Year}</span>` : ""}
+      </div>`).join("");
+  }, 350);
 }
 
-function selectModalMovie(movieId) {
-  const m = movies.find(m => m.movieId === movieId);
-  if (!m || modalSelectedMovies.some(s => s.movieId === movieId)) return;
-  modalSelectedMovies.push({ movieId: m.movieId, title: m.title, posterUrl: m.posterUrl });
-  document.getElementById("modalMovieSearchInput").value = "";
+async function selectModalMovieFromOMDB(imdbId) {
+  if (modalSelectedMovies.some(m => m.imdbId === imdbId)) return;
   document.getElementById("modalMovieResults").style.display = "none";
+  document.getElementById("modalMovieSearchInput").value = "";
+  const d = await fetchOMDBDetails(imdbId);
+  modalSelectedMovies.push({
+    imdbId,
+    title:      d.Title,
+    posterUrl:  d.Poster      !== "N/A" ? d.Poster      : null,
+    year:       d.Year        !== "N/A" ? d.Year        : null,
+    imdbRating: d.imdbRating  !== "N/A" ? d.imdbRating  : null,
+    runtime:    d.Runtime     !== "N/A" ? d.Runtime     : null,
+  });
   renderModalSelectedMovies();
 }
 
-function removeModalMovie(movieId) {
-  modalSelectedMovies = modalSelectedMovies.filter(m => m.movieId !== movieId);
+function removeModalMovie(id) {
+  modalSelectedMovies = modalSelectedMovies.filter(m => (m.imdbId || m.movieId) !== id);
   renderModalSelectedMovies();
 }
 
@@ -374,13 +400,14 @@ function renderModalSelectedMovies() {
     <div class="modal-selected-chip">
       ${m.posterUrl ? `<img src="${escHtml(m.posterUrl)}" alt="" />` : ""}
       <span>${escHtml(m.title)}</span>
-      <button class="modal-chip-remove" onclick="removeModalMovie('${m.movieId}')" title="Remove">✕</button>
+      <button class="modal-chip-remove" onclick="removeModalMovie('${escHtml(m.imdbId || m.movieId)}')" title="Remove">✕</button>
     </div>`).join("");
 }
 
-// ── List inline add-movie search ───────────────────────────────────────────────
+// ── List inline add-movie search (OMDB) ───────────────────────────────────────
 function openListAddSearch(listId) {
   listAddSearchOpen = listId;
+  expandedLists.add(listId);
   render();
   setTimeout(() => document.getElementById(`listAddInput-${listId}`)?.focus(), 50);
 }
@@ -391,25 +418,37 @@ function closeListAddSearch() {
 }
 
 function onListAddSearch(listId, query) {
-  const q       = query.trim().toLowerCase();
+  clearTimeout(listAddSearchTimer);
+  const q       = query.trim();
   const results = document.getElementById(`listAddResults-${listId}`);
   if (!results) return;
-  if (!q) { results.innerHTML = ""; return; }
-  const existing = lists.find(l => l.listId === listId)?.movieIds || [];
-  const matches  = movies
-    .filter(m => !existing.includes(m.movieId) && (m.title || "").toLowerCase().includes(q))
-    .slice(0, 6);
-  if (!matches.length) { results.innerHTML = '<div class="list-add-no-results">No matches</div>'; return; }
-  results.innerHTML = matches.map(m => `
-    <div class="list-add-result-item" onmousedown="selectListAddMovie('${listId}','${m.movieId}')">
-      ${m.posterUrl ? `<img src="${escHtml(m.posterUrl)}" alt="" />` : `<div class="list-add-placeholder">🎬</div>`}
-      <span class="list-add-result-title">${escHtml(m.title)}</span>
-      ${m.year ? `<span class="list-add-result-year">${m.year}</span>` : ""}
-    </div>`).join("");
+  if (!q || q.length < 2) { results.innerHTML = ""; return; }
+  results.innerHTML = '<div class="list-add-no-results">Searching…</div>';
+  listAddSearchTimer = setTimeout(async () => {
+    const matches = await searchOMDB(q);
+    const el = document.getElementById(`listAddResults-${listId}`);
+    if (!el) return;
+    if (!matches.length) { el.innerHTML = '<div class="list-add-no-results">No results found</div>'; return; }
+    el.innerHTML = matches.slice(0, 6).map(r => `
+      <div class="list-add-result-item" onmousedown="selectListAddMovieFromOMDB('${listId}','${r.imdbID}')">
+        ${r.Poster !== "N/A" ? `<img src="${escHtml(r.Poster)}" alt="" />` : `<div class="list-add-placeholder">🎬</div>`}
+        <span class="list-add-result-title">${escHtml(r.Title)}</span>
+        ${r.Year ? `<span class="list-add-result-year">${r.Year}</span>` : ""}
+      </div>`).join("");
+  }, 350);
 }
 
-async function selectListAddMovie(listId, movieId) {
+async function selectListAddMovieFromOMDB(listId, imdbId) {
   closeListAddSearch();
+  const d = await fetchOMDBDetails(imdbId);
+  const movieId = await resolveOrCreateMovie({
+    imdbId,
+    title:      d.Title,
+    posterUrl:  d.Poster     !== "N/A" ? d.Poster     : null,
+    year:       d.Year       !== "N/A" ? d.Year       : null,
+    imdbRating: d.imdbRating !== "N/A" ? d.imdbRating : null,
+    runtime:    d.Runtime    !== "N/A" ? d.Runtime    : null,
+  });
   await addMovieToList(listId, movieId);
 }
 
@@ -1247,25 +1286,26 @@ function renderListPanel(l) {
     ${posterStrip}
     <div class="list-header-actions">
       ${auth ? `<button class="list-action-btn" onclick="event.stopPropagation(); startEditList('${l.listId}')" title="Edit">✏️</button>
-               <button class="list-action-btn danger" onclick="event.stopPropagation(); deleteList('${l.listId}')" title="Delete">🗑</button>` : ""}
+               <button class="list-action-btn danger" onclick="event.stopPropagation(); deleteList('${l.listId}')" title="Delete">🗑</button>
+               <button class="list-action-btn list-add-btn" onclick="event.stopPropagation(); openListAddSearch('${l.listId}')" title="Add movie">+</button>` : ""}
       <button class="list-expand-btn" onclick="toggleListExpanded('${l.listId}')">${isExpanded ? "▲" : "▼"}</button>
     </div>`;
 
-  const addMovieSection = auth ? (listAddSearchOpen === l.listId ? `
+  const inlineSearch = auth && listAddSearchOpen === l.listId ? `
     <div class="list-add-search">
       <div class="list-add-search-wrap">
         <input type="text" id="listAddInput-${l.listId}" class="list-add-search-input"
-          placeholder="Search movies…" autocomplete="off"
+          placeholder="Search OMDB…" autocomplete="off"
           oninput="onListAddSearch('${l.listId}', this.value)"
           onblur="setTimeout(() => { const r = document.getElementById('listAddResults-${l.listId}'); if(r) r.innerHTML=''; }, 150)" />
         <div class="list-add-results" id="listAddResults-${l.listId}"></div>
       </div>
       <button class="list-cancel-btn" onclick="closeListAddSearch()">Cancel</button>
-    </div>` : `<button class="list-add-movie-btn" onclick="openListAddSearch('${l.listId}')">+ Add movie</button>`
-  ) : "";
+    </div>` : "";
 
   const body = isExpanded ? `
     <div class="list-body">
+      ${inlineSearch}
       ${movieCount === 0
         ? `<div class="empty" style="padding:1rem">No movies in this list yet.</div>`
         : (l.movieIds || []).map((mid, i) => {
@@ -1273,7 +1313,6 @@ function renderListPanel(l) {
             return movie ? buildCard(movie, i + 1, "list", l.listId) : "";
           }).join("")
       }
-      ${addMovieSection}
     </div>` : "";
 
   return `<div class="list-panel" data-list-id="${l.listId}"
