@@ -548,10 +548,24 @@ async function removeFromQueue(movieId) {
 }
 
 // ── Watched ───────────────────────────────────────────────────────────────────
-function toggleNowWatching(movieId) {
-  if (nowWatching.has(movieId)) nowWatching.delete(movieId);
-  else nowWatching.add(movieId);
+async function toggleNowWatching(movieId) {
+  if (nowWatching.has(movieId)) {
+    nowWatching.delete(movieId);
+    render();
+    return;
+  }
+  nowWatching.add(movieId);
   render();
+  const movie = movies.find(m => m.movieId === movieId);
+  if (movie && auth) {
+    try {
+      await fetch(`${API}/nowwatching`, {
+        method:  "POST",
+        headers: jsonHeaders(),
+        body:    JSON.stringify({ movieTitle: movie.title, imdbId: movie.imdbId || null }),
+      });
+    } catch (e) { console.error("Discord notification failed:", e); }
+  }
 }
 
 async function moveToWatched(movieId) {

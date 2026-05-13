@@ -82,6 +82,9 @@ export const handler = async (event) => {
     if (method === "PUT"    && s0 === "watched" &&  s1) return await updateWatchedDate(event, s1);
     if (method === "DELETE" && s0 === "watched" &&  s1) return await removeFromWatched(event, s1);
 
+    // Now Watching (Discord notification)
+    if (method === "POST" && s0 === "nowwatching") return await postNowWatching(event);
+
     // Lists
     if (method === "GET"    && s0 === "lists" && !s1)                          return await getLists();
     if (method === "POST"   && s0 === "lists" && !s1)                          return await createList(event);
@@ -316,6 +319,26 @@ async function removeFromWatched(event, movieId) {
   delete watchedDates[movieId];
   await ddb.send(new PutCommand({ TableName: "queue", Item: { queueId: "watched", movieIds, watchedDates } }));
   return ok({ movieIds, watchedDates });
+}
+
+// ── Now Watching (Discord) ────────────────────────────────────────────────────
+
+async function postNowWatching(event) {
+  const username = getUser(event);
+  if (!username) return err(401, "Login required");
+  const { movieTitle, imdbId } = JSON.parse(event.body || "{}");
+  if (!movieTitle?.trim()) return err(400, "movieTitle required");
+  const webhookUrl = process.env.DISCORD_WEBHOOK;
+  if (!webhookUrl) return err(500, "Discord webhook not configured");
+  const titleText = imdbId
+    ? `[**${movieTitle.trim()}**](https://www.imdb.com/title/${imdbId}/)`
+    : `**${movieTitle.trim()}**`;
+  await fetch(webhookUrl, {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({ content: `🎬 Now Watching: ${titleText}` }),
+  });
+  return ok({ posted: true });
 }
 
 // ── Lists ─────────────────────────────────────────────────────────────────────
