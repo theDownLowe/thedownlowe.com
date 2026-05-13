@@ -33,7 +33,7 @@ let queueIds           = [];
 let watchedIds         = [];
 let lists              = [];   // array of list objects
 let listOrder          = [];   // ordered listIds
-let activeTab          = "rankings";
+let activeTab          = "nominations";
 const nowWatching      = new Set();
 let sortMode           = "score";
 let selected           = null;
@@ -184,7 +184,7 @@ function updateAuthUI() {
 // ── Tab switching ─────────────────────────────────────────────────────────────
 function switchTab(tab) {
   activeTab = tab;
-  ["rankings","lists","queue","watched"].forEach(t => {
+  ["nominations","lists","queue","watched"].forEach(t => {
     document.getElementById(`tab-${t}`).classList.toggle("active", t === tab);
     document.getElementById(`${t}Controls`).style.display = t === tab ? "" : "none";
   });
@@ -1056,7 +1056,7 @@ function buildCard(m, rank, mode, listId = null) {
   const titleEl = hasImdb ? `<a class="movie-title imdb-link" href="https://www.imdb.com/title/${m.imdbId}/" target="_blank" rel="noopener">${escHtml(title)}</a>` : `<div class="movie-title">${escHtml(title)}</div>`;
   const metaParts = [m.year, m.runtime, m.imdbRating ? `<span class="imdb-badge">★ ${m.imdbRating}</span>` : null, `by ${escHtml(m.addedBy || "?")}`].filter(Boolean).join(" · ");
 
-  const collectionBadges = (mode === "rankings" || mode === "list") ? [
+  const collectionBadges = (mode === "nominations" || mode === "list") ? [
     queueIds.includes(m.movieId)   ? `<span class="collection-badge badge-queue">In Queue</span>`         : "",
     watchedIds.includes(m.movieId) ? `<span class="collection-badge badge-watched">Theater Watched</span>` : "",
   ].filter(Boolean).join("") : "";
@@ -1080,7 +1080,7 @@ function buildCard(m, rank, mode, listId = null) {
 
   // Right-side button(s)
   let sideBtn = "";
-  if (mode === "rankings") {
+  if (mode === "nominations") {
     sideBtn = `<button class="queue-side-btn" data-movie-id="${m.movieId}" onclick="toggleListDropdown('${m.movieId}', this)" title="Add to list">
       <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
         <line x1="1" y1="3.5" x2="10" y2="3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -1130,7 +1130,7 @@ function buildCard(m, rank, mode, listId = null) {
     : "";
 
   const cardInner = `
-    ${mode === "rankings" ? `<button class="delete-btn-corner" onclick="deleteMovie('${m.movieId}')" title="Remove">✕</button>` : ""}
+    ${mode === "nominations" ? `<button class="delete-btn-corner" onclick="deleteMovie('${m.movieId}')" title="Remove">✕</button>` : ""}
     ${badgesEl}
     <div class="card-main">
       <span class="rank">${rank}</span>
@@ -1173,7 +1173,7 @@ function buildCard(m, rank, mode, listId = null) {
 // ── Render ────────────────────────────────────────────────────────────────────
 function render() {
   updateAuthUI();
-  if (activeTab === "rankings")   renderRankings();
+  if (activeTab === "nominations") renderRankings();
   else if (activeTab === "queue") renderQueue();
   else if (activeTab === "watched") renderWatched();
   else renderListsTab();
@@ -1211,14 +1211,14 @@ function renderRankings() {
     return;
   }
 
-  list.innerHTML = items.map((m, i) => buildCard(m, start + i + 1, "rankings")).join("")
+  list.innerHTML = items.map((m, i) => buildCard(m, start + i + 1, "nominations")).join("")
     + (pages > 1 ? buildPagination(rankingsPage, pages) : "");
   reattachComments();
 }
 
 function renderQueue() {
   const list = document.getElementById("movieList");
-  if (!queueIds.length) { list.innerHTML = '<div class="empty">The queue is empty — add movies from Rankings!</div>'; return; }
+  if (!queueIds.length) { list.innerHTML = '<div class="empty">The queue is empty — add movies from Nominations!</div>'; return; }
   const queueMovies = queueIds.map(id => movies.find(m => m.movieId === id)).filter(Boolean);
   list.innerHTML = queueMovies.map((m, i) => buildCard(m, i + 1, "queue")).join("");
   reattachComments();
@@ -1415,7 +1415,7 @@ if (rankingsHideSeen)    document.getElementById("hideSeenCheck").checked    = t
 
 // Apply ?tab= on initial load only (does not update on navigation)
 const _initialTab = new URLSearchParams(window.location.search).get("tab");
-if (["rankings", "queue", "watched", "lists"].includes(_initialTab)) switchTab(_initialTab);
+if (["nominations", "queue", "watched", "lists"].includes(_initialTab)) switchTab(_initialTab);
 
 // Apply saved chat state on load
 if (chatMinimized) {
