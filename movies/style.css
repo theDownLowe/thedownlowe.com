@@ -92,10 +92,34 @@ body {
 #addBtn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
 
 /* ── Main tabs ── */
-.main-tab-row { display: flex; border-bottom: 1px solid rgba(255,255,255,0.15); margin-bottom: 1rem; }
+.main-tab-row { display: flex; align-items: stretch; border-bottom: 1px solid rgba(255,255,255,0.15); margin-bottom: 1rem; }
 .main-tab { padding: 8px 22px; font-size: 0.9rem; background: transparent; border: none; cursor: pointer; color: rgba(255,255,255,0.45); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s; }
 .main-tab:hover { color: rgba(255,255,255,0.75); }
 .main-tab.active { color: #fff; border-bottom-color: var(--green); font-weight: 500; }
+
+/* ── Theater tab group ── */
+.theater-group {
+  display: flex;
+  align-items: stretch;
+  margin-left: 6px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(255,255,255,0.12);
+}
+.theater-label {
+  display: flex;
+  align-items: center;
+  padding-right: 2px;
+  margin-bottom: 2px;
+  font-size: 0.6rem;
+  color: rgba(255,255,255,0.22);
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  font-weight: 600;
+  cursor: default;
+  user-select: none;
+  white-space: nowrap;
+}
+.theater-tab { padding: 8px 16px; }
 
 /* ── Sort tabs ── */
 .tab-row { display: flex; border: 1px solid rgba(255,255,255,0.2); border-radius: var(--radius); overflow: hidden; width: fit-content; margin-bottom: 0.75rem; background: rgba(255,255,255,0.08); }
@@ -103,6 +127,7 @@ body {
 .tab.active { background: rgba(255,255,255,0.15); color: #fff; font-weight: 500; }
 .sort-label { font-size: 0.75rem; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 0.75rem; }
 .queue-hint { font-size: 0.78rem; color: rgba(255,255,255,0.4); margin-bottom: 0.75rem; }
+.rankings-hint { font-size: 0.75rem; color: rgba(255,255,255,0.35); margin-bottom: 0.75rem; letter-spacing: 0.1px; }
 
 /* ── Movie list ── */
 .movie-list { display: flex; flex-direction: column; gap: 10px; }
@@ -131,6 +156,89 @@ body {
 .queue-side-btn:hover { background: #e6f5ef; color: var(--green); }
 .queue-side-btn.in-queue { background: #e6f5ef; color: var(--green); }
 .queue-side-btn.remove:hover { background: #fdf0f0; color: var(--red); }
+
+/* ── Queue side panel (3-button column for queue mode) ── */
+.queue-side-panel {
+  width: 74px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+}
+.queue-action-btn {
+  flex: 1;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: #fafaf9;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-weight: 500;
+  padding: 0 5px;
+  text-align: center;
+  line-height: 1.3;
+  transition: background 0.15s, color 0.15s;
+}
+.queue-action-btn:last-child { border-bottom: none; }
+.queue-action-btn:hover { background: #f0ede9; color: var(--text); }
+
+.queue-action-btn.now-watching-btn.active {
+  background: linear-gradient(to bottom, #7B2E00, #C05020);
+  color: #fff;
+}
+.queue-action-btn.move-watched-btn:hover { background: #e6f5ef; color: var(--green); }
+
+.queue-action-btn.remove-queue-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.queue-action-btn.remove-queue-btn:hover { background: #fdf0f0; color: var(--red); }
+
+/* ── Now Watching card gradient ── */
+.movie-card.now-watching {
+  background: linear-gradient(135deg, #5C1800 0%, #A03200 45%, #D05510 100%);
+  border-color: #8C2C00;
+}
+.movie-card.now-watching .movie-title,
+.movie-card.now-watching a.imdb-link { color: #fff; }
+.movie-card.now-watching a.imdb-link:hover { color: #FFD9B0; text-decoration: underline; }
+.movie-card.now-watching .movie-meta,
+.movie-card.now-watching .rank { color: rgba(255, 210, 165, 0.65); }
+.movie-card.now-watching .imdb-badge { color: #FFD580; }
+.movie-card.now-watching .score.pos  { color: #9EDFBF; }
+.movie-card.now-watching .score.neg  { color: #FFB3A8; }
+.movie-card.now-watching .score.zero { color: rgba(255, 210, 165, 0.55); }
+.movie-card.now-watching .vote-btn {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.18);
+  color: rgba(255, 215, 170, 0.7);
+}
+.movie-card.now-watching .vote-btn:hover { background: rgba(255,255,255,0.16); color: #fff; }
+.movie-card.now-watching .vote-btn.up.active   { background: rgba(29,158,117,0.35); border-color: rgba(29,158,117,0.5); color: #9EDFBF; }
+.movie-card.now-watching .vote-btn.down.active { background: rgba(226,75,74,0.3);   border-color: rgba(226,75,74,0.45);  color: #FFB3A8; }
+.movie-card.now-watching .card-footer {
+  background: rgba(0,0,0,0.18);
+  border-top-color: rgba(255,255,255,0.1);
+}
+.movie-card.now-watching .voter-names.up   { color: #9EDFBF; }
+.movie-card.now-watching .voter-names.down { color: #FFB3A8; }
+.movie-card.now-watching .voter-names.seen { color: #DDBFFF; }
+.movie-card.now-watching .comments-toggle-btn { color: rgba(255, 215, 170, 0.5); }
+.movie-card.now-watching .comments-toggle-btn:hover { color: rgba(255,255,255,0.85); }
+.movie-card.now-watching .queue-side-panel { border-left-color: rgba(255,255,255,0.12); }
+.movie-card.now-watching .queue-action-btn {
+  background: rgba(0,0,0,0.22);
+  color: rgba(255, 215, 165, 0.75);
+  border-bottom-color: rgba(255,255,255,0.08);
+}
+.movie-card.now-watching .queue-action-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.movie-card.now-watching .queue-action-btn.now-watching-btn.active {
+  background: rgba(255, 140, 60, 0.32);
+  color: #FFD9A0;
+}
+.movie-card.now-watching .queue-action-btn.move-watched-btn:hover { background: rgba(29,158,117,0.25); color: #9EDFBF; }
+.movie-card.now-watching .queue-action-btn.remove-queue-btn:hover { background: rgba(226,75,74,0.2); color: #FFB3A8; }
 
 /* ── Delete corner ── */
 .delete-btn-corner { position: absolute; top: 6px; left: 6px; width: 18px; height: 18px; border-radius: 4px; border: none; background: transparent; cursor: pointer; font-size: 11px; color: #ccc; display: flex; align-items: center; justify-content: center; padding: 0; transition: color 0.1s, background 0.1s; z-index: 1; }
@@ -511,7 +619,12 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 
   .app { padding: 1.5rem 0.75rem 5rem; }
   .logo { font-size: 1.6rem; }
-  .main-tab { padding: 8px 14px; }
+  .main-tab { padding: 8px 12px; }
+  .theater-tab { padding: 8px 10px; }
+  .theater-label { display: none; }
+  .theater-group { padding-left: 6px; }
   .tab-row { width: 100%; }
   .tab { flex: 1; text-align: center; }
+  .queue-side-panel { width: 62px; }
+  .queue-action-btn { font-size: 0.6rem; }
 }

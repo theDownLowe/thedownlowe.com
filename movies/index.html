@@ -76,8 +76,12 @@
       <!-- Main tabs -->
       <div class="main-tab-row">
         <button class="main-tab active" id="tab-rankings" onclick="switchTab('rankings')">Rankings</button>
-        <button class="main-tab" id="tab-queue"    onclick="switchTab('queue')">Queue</button>
-        <button class="main-tab" id="tab-lists"    onclick="switchTab('lists')">Lists</button>
+        <button class="main-tab" id="tab-lists" onclick="switchTab('lists')">Lists</button>
+        <div class="theater-group">
+          <span class="theater-label">Theater</span>
+          <button class="main-tab theater-tab" id="tab-queue"    onclick="switchTab('queue')">Queue</button>
+          <button class="main-tab theater-tab" id="tab-watched"  onclick="switchTab('watched')">Watched</button>
+        </div>
       </div>
 
       <div id="rankingsControls">
@@ -86,11 +90,13 @@
           <button class="tab" onclick="setSort('new', this)">Newest</button>
         </div>
         <div class="sort-label" id="sortLabel">sorted by score</div>
+        <div class="rankings-hint">▲ Upvote a movie if you want to watch it &nbsp;·&nbsp; ▼ Downvote if you absolutely do not</div>
       </div>
+      <div id="listsControls" style="display:none"></div>
       <div id="queueControls" style="display:none">
         <div class="queue-hint">Drag cards to reorder · changes apply to everyone</div>
       </div>
-      <div id="listsControls" style="display:none"></div>
+      <div id="watchedControls" style="display:none"></div>
 
       <div class="movie-list" id="movieList">
         <div class="loading">Loading movies...</div>

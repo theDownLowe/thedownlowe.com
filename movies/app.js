@@ -30,9 +30,11 @@ function jsonHeaders() {
 // ── State ─────────────────────────────────────────────────────────────────────
 let movies             = [];
 let queueIds           = [];
+let watchedIds         = [];
 let lists              = [];   // array of list objects
 let listOrder          = [];   // ordered listIds
 let activeTab          = "rankings";
+const nowWatching      = new Set();
 let sortMode           = "score";
 let selected           = null;
 let searchTimer        = null;
@@ -173,7 +175,7 @@ function updateAuthUI() {
 // ── Tab switching ─────────────────────────────────────────────────────────────
 function switchTab(tab) {
   activeTab = tab;
-  ["rankings","queue","lists"].forEach(t => {
+  ["rankings","lists","queue","watched"].forEach(t => {
     document.getElementById(`tab-${t}`).classList.toggle("active", t === tab);
     document.getElementById(`${t}Controls`).style.display = t === tab ? "" : "none";
   });
@@ -211,7 +213,7 @@ function renderListDropdown(movieId, btnEl) {
     <label class="dd-item dd-queue-item">
       <input type="checkbox" ${inQueue ? "checked" : ""}
         onchange="onDropdownQueueChange('${movieId}',this.checked,this)" />
-      <span class="dd-label dd-queue-label">Main Queue</span>
+      <span class="dd-label dd-queue-label">Theater Queue</span>
     </label>
     ${lists.length ? `<div class="dd-divider"></div>${listItems}` : ""}
     <div class="dd-divider"></div>
@@ -327,9 +329,11 @@ async function deleteMovie(movieId) {
   if (!auth) { openAuthModal(); return; }
   if (!confirm("Remove this movie?")) return;
   pendingDeletes.add(movieId);
-  movies   = movies.filter(m => m.movieId !== movieId);
-  queueIds = queueIds.filter(id => id !== movieId);
-  lists    = lists.map(l => ({ ...l, movieIds: (l.movieIds || []).filter(id => id !== movieId) }));
+  movies     = movies.filter(m => m.movieId !== movieId);
+  queueIds   = queueIds.filter(id => id !== movieId);
+  watchedIds = watchedIds.filter(id => id !== movieId);
+  nowWatching.delete(movieId);
+  lists      = lists.map(l => ({ ...l, movieIds: (l.movieIds || []).filter(id => id !== movieId) }));
   render();
   try { await fetch(`${API}/movies/${movieId}`, { method: "DELETE", headers: jsonHeaders() }); }
   catch (e) { console.error("Delete failed:", e); } finally { pendingDeletes.delete(movieId); }
@@ -362,6 +366,31 @@ async function removeFromQueue(movieId) {
   pendingQueue.add(movieId); render();
   try { await fetch(`${API}/queue/${movieId}`, { method: "DELETE", headers: jsonHeaders() }); }
   catch (e) { console.error("Remove from queue failed:", e); } finally { pendingQueue.delete(movieId); }
+}
+
+// ── Watched ───────────────────────────────────────────────────────────────────
+function toggleNowWatching(movieId) {
+  if (nowWatching.has(movieId)) nowWatching.delete(movieId);
+  else nowWatching.add(movieId);
+  render();
+}
+
+async function moveToWatched(movieId) {
+  if (!auth) { openAuthModal(); return; }
+  nowWatching.delete(movieId);
+  queueIds   = queueIds.filter(id => id !== movieId);
+  watchedIds = [movieId, ...watchedIds.filter(id => id !== movieId)];
+  render();
+  try { await fetch(`${API}/watched`, { method: "POST", headers: jsonHeaders(), body: JSON.stringify({ movieId }) }); }
+  catch (e) { console.error("Move to watched failed:", e); }
+}
+
+async function removeFromWatched(movieId) {
+  if (!auth) { openAuthModal(); return; }
+  watchedIds = watchedIds.filter(id => id !== movieId);
+  render();
+  try { await fetch(`${API}/watched/${movieId}`, { method: "DELETE", headers: jsonHeaders() }); }
+  catch (e) { console.error("Remove from watched failed:", e); }
 }
 
 // ── Queue drag ────────────────────────────────────────────────────────────────
@@ -869,7 +898,9 @@ function buildCard(m, rank, mode, listId = null) {
     seenNames.length ? `<span class="voter-names seen">👁 ${seenNames.join(", ")}</span>` : "",
   ].filter(Boolean).join("");
 
-  // Right-side button
+  const isNowWatching = mode === "queue" && nowWatching.has(m.movieId);
+
+  // Right-side button(s)
   let sideBtn = "";
   if (mode === "rankings") {
     sideBtn = `<button class="queue-side-btn${inAnyCollection ? " in-queue" : ""}" data-movie-id="${m.movieId}" onclick="toggleListDropdown('${m.movieId}', this)" title="Add to list">
@@ -882,7 +913,20 @@ function buildCard(m, rank, mode, listId = null) {
       </svg>
     </button>`;
   } else if (mode === "queue") {
-    sideBtn = `<button class="queue-side-btn remove" onclick="removeFromQueue('${m.movieId}')" title="Remove from Queue">
+    sideBtn = `<div class="queue-side-panel">
+      <button class="queue-action-btn now-watching-btn${isNowWatching ? " active" : ""}" onclick="toggleNowWatching('${m.movieId}')" title="Now Watching">Now<br>Watching</button>
+      <button class="queue-action-btn move-watched-btn" onclick="moveToWatched('${m.movieId}')" title="Move to Watched">Move to<br>Watched</button>
+      <button class="queue-action-btn remove-queue-btn" onclick="removeFromQueue('${m.movieId}')" title="Remove from Queue">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+          <line x1="1" y1="3.5" x2="10" y2="3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="1" y1="7.5" x2="10" y2="7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="1" y1="11.5" x2="6" y2="11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="9" y1="11.5" x2="14" y2="11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>`;
+  } else if (mode === "list" && listId) {
+    sideBtn = `<button class="queue-side-btn remove" onclick="removeMovieFromList('${listId}','${m.movieId}')" title="Remove from List">
       <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
         <line x1="1" y1="3.5" x2="10" y2="3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         <line x1="1" y1="7.5" x2="10" y2="7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -890,8 +934,8 @@ function buildCard(m, rank, mode, listId = null) {
         <line x1="9" y1="11.5" x2="14" y2="11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
       </svg>
     </button>`;
-  } else if (mode === "list" && listId) {
-    sideBtn = `<button class="queue-side-btn remove" onclick="removeMovieFromList('${listId}','${m.movieId}')" title="Remove from List">
+  } else if (mode === "watched") {
+    sideBtn = `<button class="queue-side-btn remove" onclick="removeFromWatched('${m.movieId}')" title="Remove from Watched">
       <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
         <line x1="1" y1="3.5" x2="10" y2="3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         <line x1="1" y1="7.5" x2="10" y2="7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -926,7 +970,7 @@ function buildCard(m, rank, mode, listId = null) {
     </div>
     ${commentsSection}`;
 
-  const cardEl = `<div class="movie-card${hasImdb ? " has-imdb" : ""}"><div class="card-content">${cardInner}</div>${sideBtn}</div>`;
+  const cardEl = `<div class="movie-card${hasImdb ? " has-imdb" : ""}${isNowWatching ? " now-watching" : ""}"><div class="card-content">${cardInner}</div>${sideBtn}</div>`;
 
   if (mode === "queue") {
     return `<div class="queue-card-wrapper" data-id="${m.movieId}" draggable="true"
@@ -950,9 +994,21 @@ function buildCard(m, rank, mode, listId = null) {
 // ── Render ────────────────────────────────────────────────────────────────────
 function render() {
   updateAuthUI();
-  if (activeTab === "rankings") renderRankings();
+  if (activeTab === "rankings")   renderRankings();
   else if (activeTab === "queue") renderQueue();
+  else if (activeTab === "watched") renderWatched();
   else renderListsTab();
+}
+
+function renderWatched() {
+  const list = document.getElementById("movieList");
+  if (!watchedIds.length) {
+    list.innerHTML = '<div class="empty">Nothing watched yet — move movies here from the Queue!</div>';
+    return;
+  }
+  const watchedMovies = watchedIds.map(id => movies.find(m => m.movieId === id)).filter(Boolean);
+  list.innerHTML = watchedMovies.map((m, i) => buildCard(m, i + 1, "watched")).join("");
+  reattachComments();
 }
 
 function renderRankings() {
@@ -1091,8 +1147,15 @@ async function loadLists() {
     if (JSON.stringify(data.lists) !== JSON.stringify(lists)) { lists = data.lists || []; listOrder = data.listOrder || []; render(); }
   } catch (e) { console.error("Failed to load lists:", e); }
 }
+async function loadWatched() {
+  try {
+    const res = await fetch(`${API}/watched`), data = await res.json();
+    const ids = data.movieIds || [];
+    if (JSON.stringify(ids) !== JSON.stringify(watchedIds)) { watchedIds = ids; render(); }
+  } catch (e) { console.error("Failed to load watched:", e); }
+}
 async function loadAll() {
-  await Promise.all([loadMovies(), loadQueue(), loadLists(), loadChat()]);
+  await Promise.all([loadMovies(), loadQueue(), loadLists(), loadWatched(), loadChat()]);
   movies.forEach(m => { if (cardComments[m.movieId] === undefined) fetchComments(m.movieId); });
 }
 function startPolling() {
