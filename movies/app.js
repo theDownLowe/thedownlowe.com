@@ -248,7 +248,6 @@ async function onDropdownQueueChange(movieId, checked, cbEl) {
   try {
     if (checked) await addToQueue(movieId);
     else         await removeFromQueue(movieId);
-    updateCollectionBtnState(movieId);
   } finally { cbEl.disabled = false; }
 }
 
@@ -262,7 +261,6 @@ async function onDropdownWatchedChange(movieId, checked, cbEl) {
     } else {
       await removeFromWatched(movieId);
     }
-    updateCollectionBtnState(movieId);
   } catch (e) { console.error("Watched toggle failed:", e); }
   finally { cbEl.disabled = false; }
 }
@@ -272,15 +270,7 @@ async function onDropdownCheckChange(listId, movieId, checked, cbEl) {
   try {
     if (checked) await addMovieToList(listId, movieId);
     else         await removeMovieFromList(listId, movieId);
-    updateCollectionBtnState(movieId);
   } finally { cbEl.disabled = false; }
-}
-
-function updateCollectionBtnState(movieId) {
-  const inAny = movieInAnyCollection(movieId);
-  document.querySelectorAll(`.queue-side-btn[data-movie-id="${movieId}"]`).forEach(btn => {
-    btn.classList.toggle("in-queue", inAny);
-  });
 }
 
 function movieInAnyCollection(movieId) {
@@ -1062,8 +1052,6 @@ function buildCard(m, rank, mode, listId = null) {
   const hasVotedUp   = !!username && (m.upvoters   || []).includes(username);
   const hasVotedDown = !!username && (m.downvoters  || []).includes(username);
   const hasSeen      = !!username && (m.seenBy      || []).includes(username);
-  const inAnyCollection = movieInAnyCollection(m.movieId);
-
   const poster  = m.posterUrl ? `<img class="poster" src="${m.posterUrl}" alt="${escHtml(m.title)}" loading="lazy" />` : `<div class="poster-placeholder">🎬</div>`;
   const titleEl = hasImdb ? `<a class="movie-title imdb-link" href="https://www.imdb.com/title/${m.imdbId}/" target="_blank" rel="noopener">${escHtml(title)}</a>` : `<div class="movie-title">${escHtml(title)}</div>`;
   const metaParts = [m.year, m.runtime, m.imdbRating ? `<span class="imdb-badge">★ ${m.imdbRating}</span>` : null, `by ${escHtml(m.addedBy || "?")}`].filter(Boolean).join(" · ");
@@ -1093,7 +1081,7 @@ function buildCard(m, rank, mode, listId = null) {
   // Right-side button(s)
   let sideBtn = "";
   if (mode === "rankings") {
-    sideBtn = `<button class="queue-side-btn${inAnyCollection ? " in-queue" : ""}" data-movie-id="${m.movieId}" onclick="toggleListDropdown('${m.movieId}', this)" title="Add to list">
+    sideBtn = `<button class="queue-side-btn" data-movie-id="${m.movieId}" onclick="toggleListDropdown('${m.movieId}', this)" title="Add to list">
       <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
         <line x1="1" y1="3.5" x2="10" y2="3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         <line x1="1" y1="7.5" x2="10" y2="7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>

@@ -194,7 +194,6 @@ body {
 /* ── Queue/list side button ── */
 .queue-side-btn { width: 38px; flex-shrink: 0; border: none; border-left: 1px solid var(--border); background: #fafaf9; cursor: pointer; color: var(--muted); display: flex; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; padding: 0; }
 .queue-side-btn:hover { background: #e6f5ef; color: var(--green); }
-.queue-side-btn.in-queue { background: #e6f5ef; color: var(--green); }
 .queue-side-btn.remove:hover { background: #fdf0f0; color: var(--red); }
 
 /* ── Queue side panel (3-button column for queue mode) ── */
