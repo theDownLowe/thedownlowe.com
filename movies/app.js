@@ -46,8 +46,11 @@ let dragSrcId          = null;   // queue drag
 let dragListSrcId      = null;   // list-panel drag
 let dragListMovieSrcId = null;   // movie-within-list drag
 let currentDragListId  = null;   // which list the movie drag is in
-let rankingsPage   = 1;
-let rankingsFilter = "";
+let rankingsPage        = 1;
+let rankingsFilter      = "";
+let rankingsHideWatched = localStorage.getItem("rankFilter_watched") === "1";
+let rankingsHideQueue   = localStorage.getItem("rankFilter_queue")   === "1";
+let rankingsHideSeen    = localStorage.getItem("rankFilter_seen")    === "1";
 const PAGE_SIZE    = 20;
 let chatMessages      = [];
 let olderMessages     = [];   // pages loaded via "Load earlier"
@@ -885,7 +888,7 @@ function setSort(mode, el) {
   sortMode = mode;
   rankingsPage = 1;
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active")); el.classList.add("active");
-  document.getElementById("sortLabel").textContent = mode === "score" ? "sorted by score" : "sorted by newest";
+  document.getElementById("sortLabel").textContent = mode === "score" ? "sorted by most wanted" : "sorted by newest";
   render();
 }
 function sorted() {
@@ -902,6 +905,14 @@ function clearRankingsSearch() {
   rankingsFilter = "";
   document.getElementById("rankingsSearch").value = "";
   document.getElementById("rankingsSearchClear").style.display = "none";
+  rankingsPage = 1;
+  render();
+}
+function toggleRankFilter(type, checked) {
+  if (type === "watched") rankingsHideWatched = checked;
+  if (type === "queue")   rankingsHideQueue   = checked;
+  if (type === "seen")    rankingsHideSeen    = checked;
+  localStorage.setItem(`rankFilter_${type}`, checked ? "1" : "0");
   rankingsPage = 1;
   render();
 }
@@ -1049,9 +1060,11 @@ function renderWatched() {
 
 function renderRankings() {
   const list  = document.getElementById("movieList");
-  const all   = rankingsFilter
-    ? sorted().filter(m => (m.title || "").toLowerCase().includes(rankingsFilter))
-    : sorted();
+  const all   = sorted()
+    .filter(m => !rankingsFilter      || (m.title || "").toLowerCase().includes(rankingsFilter))
+    .filter(m => !rankingsHideWatched || !watchedIds.includes(m.movieId))
+    .filter(m => !rankingsHideQueue   || !queueIds.includes(m.movieId))
+    .filter(m => !rankingsHideSeen    || !(m.seenBy || []).includes(auth?.username));
   const total = all.length;
   const pages = Math.ceil(total / PAGE_SIZE);
 
@@ -1238,6 +1251,11 @@ function goToPage(page) {
 
 updateAuthUI();
 initTouchDrag();
+
+// Restore filter checkbox states from localStorage
+if (rankingsHideQueue)   document.getElementById("hideQueueCheck").checked   = true;
+if (rankingsHideWatched) document.getElementById("hideWatchedCheck").checked = true;
+if (rankingsHideSeen)    document.getElementById("hideSeenCheck").checked    = true;
 
 // Apply ?tab= on initial load only (does not update on navigation)
 const _initialTab = new URLSearchParams(window.location.search).get("tab");

@@ -86,7 +86,7 @@
         </div>
         <div class="rankings-controls-row">
           <div class="tab-row">
-            <button class="tab active" onclick="setSort('score', this)">Top rated</button>
+            <button class="tab active" onclick="setSort('score', this)">Most Wanted</button>
             <button class="tab" onclick="setSort('new', this)">Newest</button>
           </div>
           <div class="rankings-search-wrap">
@@ -95,6 +95,21 @@
           </div>
         </div>
         <div class="sort-label" id="sortLabel">sorted by score</div>
+        <div class="rankings-filters-row">
+          <span class="rankings-filters-label">Hide:</span>
+          <label class="rankings-filter-check">
+            <input type="checkbox" id="hideQueueCheck" onchange="toggleRankFilter('queue', this.checked)" />
+            In Queue
+          </label>
+          <label class="rankings-filter-check">
+            <input type="checkbox" id="hideWatchedCheck" onchange="toggleRankFilter('watched', this.checked)" />
+            Theater Watched
+          </label>
+          <label class="rankings-filter-check">
+            <input type="checkbox" id="hideSeenCheck" onchange="toggleRankFilter('seen', this.checked)" />
+            Seen by me
+          </label>
+        </div>
         <div class="rankings-hint">▲ Upvote a movie if you want to watch it &nbsp;·&nbsp; ▼ Downvote if you absolutely do not</div>
       </div>
       <div id="listsControls" style="display:none"></div>

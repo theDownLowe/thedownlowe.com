@@ -128,6 +128,11 @@ body {
 .tab.active { background: rgba(255,255,255,0.15); color: #fff; font-weight: 500; }
 .sort-label { font-size: 0.75rem; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 0.75rem; }
 .queue-hint { font-size: 0.78rem; color: rgba(255,255,255,0.4); margin-bottom: 0.75rem; }
+.rankings-filters-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; margin-bottom: 0.6rem; }
+.rankings-filters-label { font-size: 0.75rem; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.4px; margin-right: 2px; }
+.rankings-filter-check { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; color: rgba(255,255,255,0.5); cursor: pointer; user-select: none; }
+.rankings-filter-check input[type="checkbox"] { accent-color: var(--green); width: 14px; height: 14px; cursor: pointer; flex-shrink: 0; }
+.rankings-filter-check:hover { color: rgba(255,255,255,0.75); }
 .rankings-hint { font-size: 0.75rem; color: rgba(255,255,255,0.35); margin-bottom: 0.75rem; letter-spacing: 0.1px; }
 
 .rankings-controls-row { display: flex; align-items: center; gap: 10px; margin-bottom: 0.75rem; flex-wrap: wrap; }
