@@ -1238,6 +1238,10 @@ function goToPage(page) {
 updateAuthUI();
 initTouchDrag();
 
+// Apply ?tab= on initial load only (does not update on navigation)
+const _initialTab = new URLSearchParams(window.location.search).get("tab");
+if (["rankings", "queue", "watched", "lists"].includes(_initialTab)) switchTab(_initialTab);
+
 // Apply saved chat state on load
 if (chatMinimized) {
   document.getElementById("chatPanel").classList.add("minimized");
