@@ -46,8 +46,9 @@ let dragSrcId          = null;   // queue drag
 let dragListSrcId      = null;   // list-panel drag
 let dragListMovieSrcId = null;   // movie-within-list drag
 let currentDragListId  = null;   // which list the movie drag is in
-let rankingsPage = 1;
-const PAGE_SIZE  = 20;
+let rankingsPage   = 1;
+let rankingsFilter = "";
+const PAGE_SIZE    = 20;
 let chatMessages      = [];
 let olderMessages     = [];   // pages loaded via "Load earlier"
 let chatHasMore       = false; // server has messages older than current view
@@ -197,7 +198,8 @@ function renderListDropdown(movieId, btnEl) {
   portal.style.left    = "auto";
   portal.style.display = "block";
 
-  const inQueue = queueIds.includes(movieId);
+  const inQueue   = queueIds.includes(movieId);
+  const inWatched = watchedIds.includes(movieId);
   const listItems = lists.map(l => {
     const inList = (l.movieIds || []).includes(movieId);
     const full   = !inList && (l.movieIds || []).length >= 50;
@@ -214,6 +216,11 @@ function renderListDropdown(movieId, btnEl) {
       <input type="checkbox" ${inQueue ? "checked" : ""}
         onchange="onDropdownQueueChange('${movieId}',this.checked,this)" />
       <span class="dd-label dd-queue-label">Theater Queue</span>
+    </label>
+    <label class="dd-item dd-queue-item">
+      <input type="checkbox" ${inWatched ? "checked" : ""}
+        onchange="onDropdownWatchedChange('${movieId}',this.checked,this)" />
+      <span class="dd-label dd-queue-label">Theater Watched</span>
     </label>
     ${lists.length ? `<div class="dd-divider"></div>${listItems}` : ""}
     <div class="dd-divider"></div>
@@ -237,6 +244,21 @@ async function onDropdownQueueChange(movieId, checked, cbEl) {
   } finally { cbEl.disabled = false; }
 }
 
+async function onDropdownWatchedChange(movieId, checked, cbEl) {
+  cbEl.disabled = true;
+  try {
+    if (checked) {
+      watchedIds = [movieId, ...watchedIds.filter(id => id !== movieId)];
+      render();
+      await fetch(`${API}/watched`, { method: "POST", headers: jsonHeaders(), body: JSON.stringify({ movieId }) });
+    } else {
+      await removeFromWatched(movieId);
+    }
+    updateCollectionBtnState(movieId);
+  } catch (e) { console.error("Watched toggle failed:", e); }
+  finally { cbEl.disabled = false; }
+}
+
 async function onDropdownCheckChange(listId, movieId, checked, cbEl) {
   cbEl.disabled = true;
   try {
@@ -254,7 +276,7 @@ function updateCollectionBtnState(movieId) {
 }
 
 function movieInAnyCollection(movieId) {
-  return queueIds.includes(movieId) || lists.some(l => (l.movieIds || []).includes(movieId));
+  return queueIds.includes(movieId) || watchedIds.includes(movieId) || lists.some(l => (l.movieIds || []).includes(movieId));
 }
 
 // ── Create list modal ─────────────────────────────────────────────────────────
@@ -869,6 +891,19 @@ function sorted() {
   const list = [...movies];
   return sortMode === "score" ? list.sort((a, b) => (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes)) : list.sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt));
 }
+function onRankingsSearch() {
+  rankingsFilter = document.getElementById("rankingsSearch").value.trim().toLowerCase();
+  document.getElementById("rankingsSearchClear").style.display = rankingsFilter ? "" : "none";
+  rankingsPage = 1;
+  render();
+}
+function clearRankingsSearch() {
+  rankingsFilter = "";
+  document.getElementById("rankingsSearch").value = "";
+  document.getElementById("rankingsSearchClear").style.display = "none";
+  rankingsPage = 1;
+  render();
+}
 
 // ── Card builder ──────────────────────────────────────────────────────────────
 function buildCard(m, rank, mode, listId = null) {
@@ -1013,7 +1048,9 @@ function renderWatched() {
 
 function renderRankings() {
   const list  = document.getElementById("movieList");
-  const all   = sorted();
+  const all   = rankingsFilter
+    ? sorted().filter(m => (m.title || "").toLowerCase().includes(rankingsFilter))
+    : sorted();
   const total = all.length;
   const pages = Math.ceil(total / PAGE_SIZE);
 
@@ -1022,7 +1059,9 @@ function renderRankings() {
   const items   = all.slice(start, start + PAGE_SIZE);
 
   if (!items.length) {
-    list.innerHTML = '<div class="empty">No movies yet — sign in and suggest one!</div>';
+    list.innerHTML = rankingsFilter
+      ? `<div class="empty">No movies match "${escHtml(rankingsFilter)}"</div>`
+      : '<div class="empty">No movies yet — sign in and suggest one!</div>';
     return;
   }
 

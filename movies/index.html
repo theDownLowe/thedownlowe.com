@@ -85,9 +85,15 @@
       </div>
 
       <div id="rankingsControls">
-        <div class="tab-row">
-          <button class="tab active" onclick="setSort('score', this)">Top rated</button>
-          <button class="tab" onclick="setSort('new', this)">Newest</button>
+        <div class="rankings-controls-row">
+          <div class="tab-row">
+            <button class="tab active" onclick="setSort('score', this)">Top rated</button>
+            <button class="tab" onclick="setSort('new', this)">Newest</button>
+          </div>
+          <div class="rankings-search-wrap">
+            <input type="text" id="rankingsSearch" class="rankings-search" placeholder="Filter movies…" autocomplete="off" oninput="onRankingsSearch()" />
+            <button class="rankings-search-clear" id="rankingsSearchClear" onclick="clearRankingsSearch()" title="Clear">✕</button>
+          </div>
         </div>
         <div class="sort-label" id="sortLabel">sorted by score</div>
         <div class="rankings-hint">▲ Upvote a movie if you want to watch it &nbsp;·&nbsp; ▼ Downvote if you absolutely do not</div>
