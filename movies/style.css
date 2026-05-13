@@ -295,11 +295,12 @@ a.imdb-link { display: block; font-size: 1rem; font-weight: 500; white-space: no
 a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 .movie-meta { font-size: 0.75rem; color: var(--muted); margin-top: 5px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .imdb-badge { color: #d4a017; font-weight: 600; }
-.collection-badges { display: flex; flex-wrap: wrap; gap: 4px; }
-.collection-badge  { display: inline-block; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; letter-spacing: 0.3px; text-transform: uppercase; background: #fde8d6; color: #B84A10; }
-.movie-card.now-watching .collection-badge { background: rgba(255,255,255,0.15); color: #FFD9B0; }
-.vote-area { display: flex; flex-direction: column; align-items: center; gap: 5px; flex-shrink: 0; }
-.vote-btns  { display: flex; align-items: center; gap: 6px; }
+.collection-badges { display: flex; gap: 0; border-bottom: 1px solid rgba(184,74,16,0.15); background: rgba(184,74,16,0.06); overflow: hidden; border-radius: var(--radius) var(--radius) 0 0; }
+.collection-badge  { font-size: 0.67rem; font-weight: 700; padding: 4px 12px; letter-spacing: 0.4px; text-transform: uppercase; color: #B84A10; border-right: 1px solid rgba(184,74,16,0.15); }
+.collection-badge:last-child { border-right: none; }
+.movie-card.now-watching .collection-badges { background: rgba(0,0,0,0.18); border-bottom-color: rgba(255,255,255,0.1); }
+.movie-card.now-watching .collection-badge  { color: #FFD9B0; border-right-color: rgba(255,255,255,0.1); }
+.vote-area { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .vote-btn { width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--border); background: transparent; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; transition: background 0.1s, border-color 0.1s; color: var(--muted); }
 .vote-btn:hover { background: #f3f3f1; border-color: #aaa; }
 .vote-btn.up.active { background: #e6f5ef; border-color: #a3d9c3; color: var(--green); }
@@ -693,8 +694,7 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 @media (max-width: 600px) {
   /* Poster stays left, title/details to its right; only vote buttons wrap below */
   .card-main { flex-wrap: wrap; gap: 10px; padding: 10px 12px; }
-  .vote-area { width: 100%; align-items: flex-end; padding-top: 6px; border-top: 1px solid #f0ece8; }
-  .vote-btns { justify-content: flex-end; }
+  .vote-area { width: 100%; justify-content: flex-end; padding-top: 2px; border-top: 1px solid #f0ece8; }
   .vote-btn { width: 34px; height: 34px; }
   .movie-title, a.imdb-link { white-space: normal; }
 }
