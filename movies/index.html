@@ -61,18 +61,6 @@
         </div>
       </header>
 
-      <div class="suggest-section" id="suggestSection">
-        <div class="suggest-bar">
-          <div class="search-wrap">
-            <input type="text" id="movieInput" placeholder="Search for a movie..." maxlength="80" autocomplete="off" />
-            <div class="dropdown" id="dropdown"></div>
-          </div>
-          <button id="addBtn" onclick="addMovie()">+ Add</button>
-        </div>
-        <div class="preview" id="preview"></div>
-        <div class="locked-msg">Sign in to suggest and vote on movies</div>
-      </div>
-
       <!-- Main tabs -->
       <div class="main-tab-row">
         <button class="main-tab active" id="tab-rankings" onclick="switchTab('rankings')">Rankings</button>
@@ -85,6 +73,17 @@
       </div>
 
       <div id="rankingsControls">
+        <div class="suggest-section" id="suggestSection">
+          <div class="suggest-bar">
+            <div class="search-wrap">
+              <input type="text" id="movieInput" placeholder="Search for a movie..." maxlength="80" autocomplete="off" />
+              <div class="dropdown" id="dropdown"></div>
+            </div>
+            <button id="addBtn" onclick="addMovie()">+ Add</button>
+          </div>
+          <div class="preview" id="preview"></div>
+          <div class="locked-msg">Sign in to suggest and vote on movies</div>
+        </div>
         <div class="rankings-controls-row">
           <div class="tab-row">
             <button class="tab active" onclick="setSort('score', this)">Top rated</button>
