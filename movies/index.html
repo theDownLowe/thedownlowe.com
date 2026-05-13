@@ -34,10 +34,19 @@
 
   <!-- Create list modal -->
   <div class="auth-overlay" id="createListModal">
-    <div class="auth-modal">
+    <div class="auth-modal create-list-modal">
       <h2>Create a new list</h2>
       <input type="text" id="newListTitle" placeholder="List name" maxlength="60" />
-      <textarea id="newListDesc" placeholder="Description (optional)" rows="3" style="padding:10px 12px;border:1px solid #d0cdc8;border-radius:8px;font-size:0.95rem;font-family:inherit;resize:vertical;outline:none;"></textarea>
+      <textarea id="newListDesc" placeholder="Description (optional)" rows="2" style="padding:10px 12px;border:1px solid #d0cdc8;border-radius:8px;font-size:0.95rem;font-family:inherit;resize:vertical;outline:none;"></textarea>
+      <div class="modal-movie-search-section">
+        <div class="modal-movie-search-wrap">
+          <input type="text" id="modalMovieSearchInput" class="modal-movie-search-input" placeholder="Add movies to this list…" autocomplete="off"
+            oninput="onModalMovieSearch(this.value)"
+            onblur="setTimeout(() => { const r = document.getElementById('modalMovieResults'); if(r) r.style.display='none'; }, 150)" />
+          <div class="modal-movie-results" id="modalMovieResults" style="display:none"></div>
+        </div>
+        <div class="modal-selected-movies" id="modalSelectedMovies"></div>
+      </div>
       <div class="auth-error" id="createListError"></div>
       <button class="auth-submit" onclick="submitCreateList()">Create list</button>
       <p class="auth-toggle"><a href="#" onclick="closeCreateListModal(); return false;">Cancel</a></p>

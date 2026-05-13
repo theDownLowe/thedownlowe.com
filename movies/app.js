@@ -42,6 +42,8 @@ let authModalMode      = "login";
 let openDropdownMovieId = null;  // which movie has its list-dropdown open
 let createListForMovieId = null; // movieId that triggered create modal
 let editingListId      = null;   // listId being edited inline
+let listAddSearchOpen  = null;   // listId with inline add-search open
+let modalSelectedMovies = [];    // movies staged in the create-list modal
 let dragSrcId          = null;   // queue drag
 let dragListSrcId      = null;   // list-panel drag
 let dragListMovieSrcId = null;   // movie-within-list drag
@@ -287,15 +289,21 @@ function movieInAnyCollection(movieId) {
 function openCreateListModal(movieId) {
   createListForMovieId = movieId;
   closeListDropdown();
+  const seed = movieId ? movies.find(m => m.movieId === movieId) : null;
+  modalSelectedMovies = seed ? [{ movieId: seed.movieId, title: seed.title, posterUrl: seed.posterUrl }] : [];
   document.getElementById("newListTitle").value = "";
   document.getElementById("newListDesc").value  = "";
   document.getElementById("createListError").textContent = "";
+  document.getElementById("modalMovieSearchInput").value = "";
+  document.getElementById("modalMovieResults").style.display = "none";
+  renderModalSelectedMovies();
   document.getElementById("createListModal").classList.add("open");
   setTimeout(() => document.getElementById("newListTitle").focus(), 50);
 }
 function closeCreateListModal() {
   document.getElementById("createListModal").classList.remove("open");
   createListForMovieId = null;
+  modalSelectedMovies  = [];
 }
 async function submitCreateList() {
   if (!auth) { closeCreateListModal(); openAuthModal(); return; }
@@ -304,14 +312,105 @@ async function submitCreateList() {
   const errorEl = document.getElementById("createListError");
   if (!title) { errorEl.textContent = "Please enter a list name."; return; }
   try {
-    const res  = await fetch(`${API}/lists`, { method: "POST", headers: jsonHeaders(), body: JSON.stringify({ title, description: desc, movieId: createListForMovieId || undefined }) });
+    const res  = await fetch(`${API}/lists`, { method: "POST", headers: jsonHeaders(), body: JSON.stringify({ title, description: desc }) });
     const data = await res.json();
     if (!res.ok) { errorEl.textContent = data.error || "Failed to create list."; return; }
     lists     = [data.list, ...lists];
     listOrder = data.listOrder;
+    if (modalSelectedMovies.length) {
+      const listId = data.list.listId;
+      await Promise.all(modalSelectedMovies.map(m =>
+        fetch(`${API}/lists/${listId}/movies`, { method: "POST", headers: jsonHeaders(), body: JSON.stringify({ movieId: m.movieId }) })
+      ));
+      const list = lists.find(l => l.listId === listId);
+      if (list) list.movieIds = modalSelectedMovies.map(m => m.movieId);
+    }
     closeCreateListModal();
     if (activeTab === "lists") render();
   } catch (e) { errorEl.textContent = "Connection error."; }
+}
+
+// ── Modal movie search ────────────────────────────────────────────────────────
+function onModalMovieSearch(query) {
+  const q       = query.trim().toLowerCase();
+  const results = document.getElementById("modalMovieResults");
+  if (!q) { results.style.display = "none"; results.innerHTML = ""; return; }
+  const matches = movies
+    .filter(m => (m.title || "").toLowerCase().includes(q) && !modalSelectedMovies.some(s => s.movieId === m.movieId))
+    .slice(0, 6);
+  if (!matches.length) {
+    results.innerHTML = '<div class="modal-movie-no-results">No matches</div>';
+    results.style.display = "block";
+    return;
+  }
+  results.innerHTML = matches.map(m => `
+    <div class="modal-movie-result-item" onmousedown="selectModalMovie('${m.movieId}')">
+      ${m.posterUrl ? `<img src="${escHtml(m.posterUrl)}" alt="" />` : `<div class="modal-result-placeholder">🎬</div>`}
+      <span class="modal-result-title">${escHtml(m.title)}</span>
+      ${m.year ? `<span class="modal-result-year">${m.year}</span>` : ""}
+    </div>`).join("");
+  results.style.display = "block";
+}
+
+function selectModalMovie(movieId) {
+  const m = movies.find(m => m.movieId === movieId);
+  if (!m || modalSelectedMovies.some(s => s.movieId === movieId)) return;
+  modalSelectedMovies.push({ movieId: m.movieId, title: m.title, posterUrl: m.posterUrl });
+  document.getElementById("modalMovieSearchInput").value = "";
+  document.getElementById("modalMovieResults").style.display = "none";
+  renderModalSelectedMovies();
+}
+
+function removeModalMovie(movieId) {
+  modalSelectedMovies = modalSelectedMovies.filter(m => m.movieId !== movieId);
+  renderModalSelectedMovies();
+}
+
+function renderModalSelectedMovies() {
+  const el = document.getElementById("modalSelectedMovies");
+  if (!el) return;
+  if (!modalSelectedMovies.length) { el.innerHTML = ""; return; }
+  el.innerHTML = modalSelectedMovies.map(m => `
+    <div class="modal-selected-chip">
+      ${m.posterUrl ? `<img src="${escHtml(m.posterUrl)}" alt="" />` : ""}
+      <span>${escHtml(m.title)}</span>
+      <button class="modal-chip-remove" onclick="removeModalMovie('${m.movieId}')" title="Remove">✕</button>
+    </div>`).join("");
+}
+
+// ── List inline add-movie search ───────────────────────────────────────────────
+function openListAddSearch(listId) {
+  listAddSearchOpen = listId;
+  render();
+  setTimeout(() => document.getElementById(`listAddInput-${listId}`)?.focus(), 50);
+}
+
+function closeListAddSearch() {
+  listAddSearchOpen = null;
+  render();
+}
+
+function onListAddSearch(listId, query) {
+  const q       = query.trim().toLowerCase();
+  const results = document.getElementById(`listAddResults-${listId}`);
+  if (!results) return;
+  if (!q) { results.innerHTML = ""; return; }
+  const existing = lists.find(l => l.listId === listId)?.movieIds || [];
+  const matches  = movies
+    .filter(m => !existing.includes(m.movieId) && (m.title || "").toLowerCase().includes(q))
+    .slice(0, 6);
+  if (!matches.length) { results.innerHTML = '<div class="list-add-no-results">No matches</div>'; return; }
+  results.innerHTML = matches.map(m => `
+    <div class="list-add-result-item" onmousedown="selectListAddMovie('${listId}','${m.movieId}')">
+      ${m.posterUrl ? `<img src="${escHtml(m.posterUrl)}" alt="" />` : `<div class="list-add-placeholder">🎬</div>`}
+      <span class="list-add-result-title">${escHtml(m.title)}</span>
+      ${m.year ? `<span class="list-add-result-year">${m.year}</span>` : ""}
+    </div>`).join("");
+}
+
+async function selectListAddMovie(listId, movieId) {
+  closeListAddSearch();
+  await addMovieToList(listId, movieId);
 }
 
 // ── Add movie ─────────────────────────────────────────────────────────────────
@@ -1119,6 +1218,15 @@ function renderListPanel(l) {
   const isEditing  = editingListId === l.listId;
   const movieCount = (l.movieIds || []).length;
 
+  const posterMovies = !isEditing
+    ? (l.movieIds || []).map(id => movies.find(m => m.movieId === id)).filter(m => m?.posterUrl).slice(0, 5)
+    : [];
+  const posterStrip = posterMovies.length
+    ? `<div class="list-poster-strip">${posterMovies.map(m =>
+        `<img class="list-poster-thumb" src="${escHtml(m.posterUrl)}" alt="" loading="lazy" />`
+      ).join("")}</div>`
+    : "";
+
   const headerContent = isEditing ? `
     <div class="list-edit-form">
       <input id="edit-list-title-${l.listId}" class="list-title-input" value="${escHtml(l.title)}" placeholder="List name" maxlength="60" />
@@ -1136,21 +1244,36 @@ function renderListPanel(l) {
       ${l.description ? `<div class="list-desc-text">${escHtml(l.description)}</div>` : ""}
       <div class="list-creator">by ${escHtml(l.createdBy)}</div>
     </div>
+    ${posterStrip}
     <div class="list-header-actions">
       ${auth ? `<button class="list-action-btn" onclick="event.stopPropagation(); startEditList('${l.listId}')" title="Edit">✏️</button>
                <button class="list-action-btn danger" onclick="event.stopPropagation(); deleteList('${l.listId}')" title="Delete">🗑</button>` : ""}
       <button class="list-expand-btn" onclick="toggleListExpanded('${l.listId}')">${isExpanded ? "▲" : "▼"}</button>
     </div>`;
 
+  const addMovieSection = auth ? (listAddSearchOpen === l.listId ? `
+    <div class="list-add-search">
+      <div class="list-add-search-wrap">
+        <input type="text" id="listAddInput-${l.listId}" class="list-add-search-input"
+          placeholder="Search movies…" autocomplete="off"
+          oninput="onListAddSearch('${l.listId}', this.value)"
+          onblur="setTimeout(() => { const r = document.getElementById('listAddResults-${l.listId}'); if(r) r.innerHTML=''; }, 150)" />
+        <div class="list-add-results" id="listAddResults-${l.listId}"></div>
+      </div>
+      <button class="list-cancel-btn" onclick="closeListAddSearch()">Cancel</button>
+    </div>` : `<button class="list-add-movie-btn" onclick="openListAddSearch('${l.listId}')">+ Add movie</button>`
+  ) : "";
+
   const body = isExpanded ? `
     <div class="list-body">
       ${movieCount === 0
-        ? `<div class="empty" style="padding:1rem">No movies in this list yet — add some from Rankings!</div>`
+        ? `<div class="empty" style="padding:1rem">No movies in this list yet.</div>`
         : (l.movieIds || []).map((mid, i) => {
             const movie = movies.find(m => m.movieId === mid);
             return movie ? buildCard(movie, i + 1, "list", l.listId) : "";
           }).join("")
       }
+      ${addMovieSection}
     </div>` : "";
 
   return `<div class="list-panel" data-list-id="${l.listId}"
