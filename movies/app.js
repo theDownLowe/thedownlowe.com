@@ -542,6 +542,7 @@ async function addToQueue(movieId) {
 async function removeFromQueue(movieId) {
   if (!auth) { openAuthModal(); return; }
   queueIds = queueIds.filter(id => id !== movieId);
+  nowWatching.delete(movieId);
   pendingQueue.add(movieId); render();
   try { await fetch(`${API}/queue/${movieId}`, { method: "DELETE", headers: jsonHeaders() }); }
   catch (e) { console.error("Remove from queue failed:", e); } finally { pendingQueue.delete(movieId); }
