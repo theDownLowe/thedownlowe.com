@@ -1068,6 +1068,12 @@ function buildCard(m, rank, mode, listId = null) {
   const titleEl = hasImdb ? `<a class="movie-title imdb-link" href="https://www.imdb.com/title/${m.imdbId}/" target="_blank" rel="noopener">${escHtml(title)}</a>` : `<div class="movie-title">${escHtml(title)}</div>`;
   const metaParts = [m.year, m.runtime, m.imdbRating ? `<span class="imdb-badge">★ ${m.imdbRating}</span>` : null, `by ${escHtml(m.addedBy || "?")}`].filter(Boolean).join(" · ");
 
+  const collectionBadges = (mode === "rankings" || mode === "list") ? [
+    queueIds.includes(m.movieId)   ? `<span class="collection-badge badge-queue">In Queue</span>`        : "",
+    watchedIds.includes(m.movieId) ? `<span class="collection-badge badge-watched">Theater Watched</span>` : "",
+  ].filter(Boolean).join("") : "";
+  const badgesEl = collectionBadges ? `<div class="collection-badges">${collectionBadges}</div>` : "";
+
   const upNames   = (m.upvoters   || []).map(u => u === username ? "you" : u);
   const downNames = (m.downvoters || []).map(u => u === username ? "you" : u);
   const seenNames = (m.seenBy     || []).map(u => u === username ? "you" : u);
@@ -1140,7 +1146,7 @@ function buildCard(m, rank, mode, listId = null) {
     <div class="card-main">
       <span class="rank">${rank}</span>
       ${poster}
-      <div class="movie-info">${titleEl}<div class="movie-meta">${metaParts}</div></div>
+      <div class="movie-info">${titleEl}${badgesEl}<div class="movie-meta">${metaParts}</div></div>
       <div class="vote-area">
         <button class="vote-btn down${hasVotedDown ? " active" : ""}" onclick="vote('${m.movieId}',-1)" title="Thumbs down">▼</button>
         <span class="score ${cls}">${s > 0 ? "+" : ""}${s}</span>
