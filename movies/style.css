@@ -295,7 +295,7 @@ a.imdb-link { display: block; font-size: 1rem; font-weight: 500; white-space: no
 a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 .movie-meta { font-size: 0.75rem; color: var(--muted); margin-top: 5px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .imdb-badge { color: #d4a017; font-weight: 600; }
-.collection-badges { display: flex; gap: 0; border-bottom: 1px solid rgba(184,74,16,0.15); background: rgba(184,74,16,0.06); overflow: hidden; border-radius: var(--radius) var(--radius) 0 0; }
+.collection-badges { display: flex; justify-content: flex-end; gap: 0; border-bottom: 1px solid rgba(184,74,16,0.15); background: rgba(184,74,16,0.06); overflow: hidden; border-radius: var(--radius) var(--radius) 0 0; }
 .collection-badge  { font-size: 0.67rem; font-weight: 700; padding: 4px 12px; letter-spacing: 0.4px; text-transform: uppercase; color: #B84A10; border-right: 1px solid rgba(184,74,16,0.15); }
 .collection-badge:last-child { border-right: none; }
 .movie-card.now-watching .collection-badges { background: rgba(0,0,0,0.18); border-bottom-color: rgba(255,255,255,0.1); }
