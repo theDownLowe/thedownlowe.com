@@ -120,7 +120,7 @@ document.addEventListener("click", (e) => {
   const path = e.composedPath();
   if (!path.some(el => el.classList?.contains("auth-modal")) && !path.some(el => el.classList?.contains("auth-btn"))) closeAuthModal();
   if (!path.some(el => el.classList?.contains("list-dropdown")) && !path.some(el => el.classList?.contains("queue-side-btn"))) closeListDropdown();
-  if (!path.some(el => el.classList?.contains("rating-tooltip")) && !path.some(el => el.classList?.contains("rating-tooltip-btn"))) closeRatingTooltip();
+  if (!path.some(el => el.classList?.contains("rating-tooltip")) && !path.some(el => el.classList?.contains("rating-avg-btn"))) closeRatingTooltip();
 });
 
 function showSearching() { const dd = document.getElementById("dropdown"); dd.innerHTML = '<div class="dropdown-searching">Searching...</div>'; dd.classList.add("open"); }
@@ -1316,12 +1316,14 @@ function buildCard(m, rank, mode, listId = null) {
   ).join("");
 
   const ratingCount = ratingVals.length;
+  const avgBtn = ratingCount
+    ? `<button class="rating-avg-btn" data-movie="${m.movieId}" onclick="openRatingTooltip('${m.movieId}',this)" title="See all ratings">${avgRating.toFixed(1)}<sup class="rating-sup">${ratingCount}</sup></button>`
+    : `<span class="rating-avg-btn rating-avg-none">—</span>`;
   const voteRatingRow = `<div class="vote-rating-row" data-movie="${m.movieId}">
     ${zeroStar}
     <span class="rating-sep"></span>
     <div class="rating-stars-group" data-movie="${m.movieId}">${fiveStars}</div>
-    ${avgRating !== null ? `<span class="rating-avg">${avgRating.toFixed(1)}</span>` : `<span class="rating-avg rating-avg-none">—</span>`}
-    <button class="rating-tooltip-btn" data-movie="${m.movieId}" onclick="openRatingTooltip('${m.movieId}',this)" title="See all ratings">🔍${ratingCount ? `<span class="rating-count">${ratingCount}</span>` : ""}</button>
+    ${avgBtn}
   </div>`;
 
   // Right-side button(s)

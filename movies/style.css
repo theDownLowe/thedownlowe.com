@@ -389,9 +389,9 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 
 /* ── Star rating row (inside vote-area, below vote buttons) ── */
 .vote-rating-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 22px 7px 100px 38px;
   align-items: center;
-  gap: 2px;
 }
 
 .star-svg { width: 16px; height: 16px; display: block; }
@@ -459,38 +459,30 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 .rating-star-btn.filled .star-path { fill: #F4B942; stroke: #F4B942; }
 .rating-star-btn.hovered .star-path { fill: #F4C96A; stroke: #F4C96A; }
 
-/* Average display */
-.rating-avg {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: #7a6a40;
-  min-width: 20px;
-  margin-left: 3px;
-  flex-shrink: 0;
-}
-.rating-avg-none { color: #bbb; font-weight: 400; }
-
-/* Tooltip button */
-.rating-tooltip-btn {
+/* Average + count (tooltip trigger) */
+.rating-avg-btn {
   background: none;
   border: none;
   cursor: pointer;
   font-size: 0.72rem;
-  padding: 1px 3px;
-  color: var(--muted);
+  font-weight: 600;
+  color: #7a6a40;
+  padding: 2px 4px;
   border-radius: 4px;
   transition: background 0.1s;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  margin-left: 2px;
-  flex-shrink: 0;
+  text-align: center;
+  width: 38px;
+  white-space: nowrap;
 }
-.rating-tooltip-btn:hover { background: #f0ede9; }
-.rating-count {
-  font-size: 0.62rem;
-  color: var(--muted);
+.rating-avg-btn:hover { background: #f0ede9; }
+.rating-avg-none { color: #bbb; font-weight: 400; cursor: default; }
+.rating-avg-none:hover { background: none; }
+.rating-sup {
+  font-size: 0.55em;
   font-weight: 500;
+  color: var(--muted);
+  vertical-align: super;
+  margin-left: 1px;
 }
 
 /* Rating tooltip popover */
@@ -537,10 +529,10 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 .movie-card.now-watching .rating-star-btn.filled .star-path { fill: #F4B942; stroke: #F4B942; }
 .movie-card.now-watching .rating-star-btn.hovered .star-path { fill: #F4C96A; stroke: #F4C96A; }
 .movie-card.now-watching .rating-sep { background: rgba(255,255,255,0.15); }
-.movie-card.now-watching .rating-avg { color: rgba(255,220,160,0.85); }
+.movie-card.now-watching .rating-avg-btn { color: rgba(255,220,160,0.85); }
+.movie-card.now-watching .rating-avg-btn:hover { background: rgba(255,255,255,0.08); }
 .movie-card.now-watching .rating-avg-none { color: rgba(255,210,165,0.35); }
-.movie-card.now-watching .rating-tooltip-btn { color: rgba(255,210,165,0.5); }
-.movie-card.now-watching .rating-tooltip-btn:hover { background: rgba(255,255,255,0.08); }
+.movie-card.now-watching .rating-sup { color: rgba(255,210,165,0.55); }
 
 /* ── Card footer ── */
 .card-footer { border-top: 1px solid #f0ece8; padding: 8px 14px; display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 12px; background: #faf9f7; }
