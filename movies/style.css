@@ -377,8 +377,9 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 .collection-badge:last-child { border-right: none; }
 .movie-card.now-watching .collection-badges { background: rgba(0,0,0,0.18); border-bottom-color: rgba(255,255,255,0.1); }
 .movie-card.now-watching .collection-badge  { color: #FFD9B0; border-right-color: rgba(255,255,255,0.1); }
-.vote-area { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-.vote-btn { width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--border); background: transparent; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; transition: background 0.1s, border-color 0.1s; color: var(--muted); }
+.vote-area { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
+.vote-buttons { display: flex; align-items: center; gap: 5px; }
+.vote-btn { width: 32px; height: 32px; border-radius: 7px; border: 1px solid var(--border); background: transparent; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; transition: background 0.1s, border-color 0.1s; color: var(--muted); }
 .vote-btn:hover { background: #f3f3f1; border-color: #aaa; }
 .vote-btn.up.active { background: #e6f5ef; border-color: #a3d9c3; color: var(--green); }
 .vote-btn.down.active { background: #fdf0f0; border-color: #f5b8b8; color: var(--red); }
@@ -386,26 +387,22 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 .score { font-size: 0.95rem; font-weight: 500; min-width: 32px; text-align: center; }
 .score.pos { color: var(--green); } .score.neg { color: var(--red); } .score.zero { color: var(--muted); }
 
-/* ── Star rating row ── */
-.card-rating-row {
+/* ── Star rating row (inside vote-area, below vote buttons) ── */
+.vote-rating-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-top: 1px solid #f0ece8;
-  background: #fdfcfb;
+  gap: 2px;
 }
 
-.star-svg { width: 20px; height: 20px; display: block; }
+.star-svg { width: 16px; height: 16px; display: block; }
 
 /* Zero star button */
 .rating-zero-btn {
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   background: none;
   border: none;
   cursor: pointer;
@@ -415,43 +412,38 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 .rating-zero-btn .zero-path {
   fill: none;
   stroke: #ccc;
-  stroke-width: 1.6;
-  transition: stroke 0.15s;
+  stroke-width: 1.8;
+  transition: stroke 0.15s, fill 0.15s;
 }
-.rating-zero-btn .zero-label {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 6.5px;
+.rating-zero-btn .zero-text {
+  font-size: 6px;
   font-weight: 800;
-  color: #aaa;
-  line-height: 1;
-  pointer-events: none;
-  transition: color 0.15s;
+  fill: #aaa;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  transition: fill 0.15s;
 }
 .rating-zero-btn:hover .zero-path { stroke: #e05030; }
-.rating-zero-btn:hover .zero-label { color: #e05030; }
+.rating-zero-btn:hover .zero-text  { fill: #e05030; }
 .rating-zero-btn.active .zero-path { stroke: #e05030; fill: #e05030; }
-.rating-zero-btn.active .zero-label { color: #fff; }
+.rating-zero-btn.active .zero-text { fill: #fff; }
 
 /* Separator between 0 and 1-5 */
 .rating-sep {
   width: 1px;
-  height: 18px;
+  height: 14px;
   background: #d8d4cf;
   flex-shrink: 0;
-  margin: 0 2px;
+  margin: 0 3px;
 }
 
 /* 1–5 star buttons */
-.rating-stars-group { display: flex; gap: 1px; }
+.rating-stars-group { display: flex; gap: 0; }
 .rating-star-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 28px;
+  width: 20px;
+  height: 22px;
   background: none;
   border: none;
   cursor: pointer;
@@ -461,49 +453,42 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 .rating-star-btn .star-path {
   fill: none;
   stroke: #ccc;
-  stroke-width: 1.4;
+  stroke-width: 1.5;
   transition: fill 0.1s, stroke 0.1s;
 }
-.rating-star-btn.filled .star-path {
-  fill: #F4B942;
-  stroke: #F4B942;
-}
-.rating-star-btn.hovered .star-path {
-  fill: #F4C96A;
-  stroke: #F4C96A;
-}
+.rating-star-btn.filled .star-path { fill: #F4B942; stroke: #F4B942; }
+.rating-star-btn.hovered .star-path { fill: #F4C96A; stroke: #F4C96A; }
 
 /* Average display */
 .rating-avg {
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 600;
   color: #7a6a40;
-  min-width: 24px;
-  margin-left: 4px;
+  min-width: 20px;
+  margin-left: 3px;
   flex-shrink: 0;
 }
 .rating-avg-none { color: #bbb; font-weight: 400; }
 
 /* Tooltip button */
 .rating-tooltip-btn {
-  position: relative;
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 0.82rem;
-  padding: 2px 4px;
+  font-size: 0.72rem;
+  padding: 1px 3px;
   color: var(--muted);
-  border-radius: 5px;
+  border-radius: 4px;
   transition: background 0.1s;
   display: flex;
   align-items: center;
-  gap: 3px;
-  margin-left: auto;
+  gap: 2px;
+  margin-left: 2px;
   flex-shrink: 0;
 }
 .rating-tooltip-btn:hover { background: #f0ede9; }
 .rating-count {
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   color: var(--muted);
   font-weight: 500;
 }
@@ -542,13 +527,12 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 .rt-empty { font-size: 0.82rem; color: var(--muted); text-align: center; padding: 8px 12px; }
 
 /* Now-watching card overrides for rating row */
-.movie-card.now-watching .card-rating-row { background: rgba(0,0,0,0.12); border-top-color: rgba(255,255,255,0.08); }
 .movie-card.now-watching .rating-zero-btn .zero-path { stroke: rgba(255,210,165,0.4); }
-.movie-card.now-watching .rating-zero-btn .zero-label { color: rgba(255,210,165,0.4); }
+.movie-card.now-watching .rating-zero-btn .zero-text  { fill: rgba(255,210,165,0.4); }
 .movie-card.now-watching .rating-zero-btn:hover .zero-path { stroke: #FFB090; }
-.movie-card.now-watching .rating-zero-btn:hover .zero-label { color: #FFB090; }
+.movie-card.now-watching .rating-zero-btn:hover .zero-text  { fill: #FFB090; }
 .movie-card.now-watching .rating-zero-btn.active .zero-path { stroke: #e05030; fill: #e05030; }
-.movie-card.now-watching .rating-zero-btn.active .zero-label { color: #fff; }
+.movie-card.now-watching .rating-zero-btn.active .zero-text { fill: #fff; }
 .movie-card.now-watching .rating-star-btn .star-path { stroke: rgba(255,210,165,0.3); }
 .movie-card.now-watching .rating-star-btn.filled .star-path { fill: #F4B942; stroke: #F4B942; }
 .movie-card.now-watching .rating-star-btn.hovered .star-path { fill: #F4C96A; stroke: #F4C96A; }
@@ -956,8 +940,9 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 @media (max-width: 600px) {
   /* Poster stays left, title/details to its right; only vote buttons wrap below */
   .card-main { flex-wrap: wrap; gap: 10px; padding: 10px 12px; }
-  .vote-area { width: 100%; justify-content: flex-end; padding-top: 2px; border-top: 1px solid #f0ece8; }
-  .vote-btn { width: 34px; height: 34px; }
+  .vote-area { width: 100%; align-items: flex-end; padding-top: 2px; border-top: 1px solid #f0ece8; }
+  .vote-buttons { justify-content: flex-end; }
+  .vote-btn { width: 30px; height: 30px; }
   .movie-title, a.imdb-link { white-space: normal; }
 }
 

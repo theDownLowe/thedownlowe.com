@@ -1299,9 +1299,12 @@ function buildCard(m, rank, mode, listId = null) {
   const hasMyRating = myRating !== undefined;
   const starPath    = "M12 2 L14.59 8.41 L22 9.27 L16.91 14.22 L18.36 21.56 L12 18.1 L5.64 21.56 L7.09 14.22 L2 9.27 L9.41 8.41 Z";
 
+  // Zero star uses inline SVG <text> for pixel-perfect centering (centroid of this star path ≈ y=12.7)
   const zeroStar = `<button class="rating-zero-btn${hasMyRating && myRating === 0 ? " active" : ""}" onclick="rateMovie('${m.movieId}',0)" title="Rate 0 stars">
-    <svg class="star-svg" viewBox="0 0 24 24"><path class="zero-path" d="${starPath}"/></svg>
-    <span class="zero-label">0</span>
+    <svg class="star-svg" viewBox="0 0 24 24">
+      <path class="zero-path" d="${starPath}"/>
+      <text class="zero-text" x="12" y="12.7" text-anchor="middle" dominant-baseline="central">0</text>
+    </svg>
   </button>`;
 
   const fiveStars = [1,2,3,4,5].map(n =>
@@ -1313,7 +1316,7 @@ function buildCard(m, rank, mode, listId = null) {
   ).join("");
 
   const ratingCount = ratingVals.length;
-  const ratingRow = `<div class="card-rating-row">
+  const voteRatingRow = `<div class="vote-rating-row" data-movie="${m.movieId}">
     ${zeroStar}
     <span class="rating-sep"></span>
     <div class="rating-stars-group" data-movie="${m.movieId}">${fiveStars}</div>
@@ -1380,13 +1383,15 @@ function buildCard(m, rank, mode, listId = null) {
       ${poster}
       <div class="movie-info">${titleEl}<div class="movie-meta">${metaParts}</div></div>
       <div class="vote-area">
-        <button class="vote-btn down${hasVotedDown ? " active" : ""}" onclick="vote('${m.movieId}',-1)" title="Thumbs down">▼</button>
-        <span class="score ${cls}">${s > 0 ? "+" : ""}${s}</span>
-        <button class="vote-btn up${hasVotedUp ? " active" : ""}" onclick="vote('${m.movieId}',1)" title="Thumbs up">▲</button>
-        <button class="vote-btn seen-vote-btn${hasSeen ? " active" : ""}" onclick="toggleSeen('${m.movieId}')" title="${hasSeen ? "Unmark as seen" : "Mark as seen"}">👁</button>
+        <div class="vote-buttons">
+          <button class="vote-btn down${hasVotedDown ? " active" : ""}" onclick="vote('${m.movieId}',-1)" title="Thumbs down">▼</button>
+          <span class="score ${cls}">${s > 0 ? "+" : ""}${s}</span>
+          <button class="vote-btn up${hasVotedUp ? " active" : ""}" onclick="vote('${m.movieId}',1)" title="Thumbs up">▲</button>
+          <button class="vote-btn seen-vote-btn${hasSeen ? " active" : ""}" onclick="toggleSeen('${m.movieId}')" title="${hasSeen ? "Unmark as seen" : "Mark as seen"}">👁</button>
+        </div>
+        ${voteRatingRow}
       </div>
     </div>
-    ${ratingRow}
     <div class="card-footer">
       ${watchedDateRow}
       ${footerContent}
