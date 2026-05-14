@@ -46,6 +46,84 @@ body {
 .auth-toggle { font-size: 0.82rem; color: var(--muted); text-align: center; }
 .auth-toggle a { color: var(--green); text-decoration: none; }
 
+/* ── Header actions group ── */
+.header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+/* ── Admin button ── */
+.admin-btn {
+  position: relative;
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  background: rgba(255,255,255,0.07);
+  color: rgba(255,255,255,0.7);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  line-height: 1;
+}
+.admin-btn:hover { background: rgba(255,255,255,0.14); color: #fff; }
+.admin-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: var(--red);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 1px 5px;
+  min-width: 16px;
+  text-align: center;
+  line-height: 1.4;
+  border: 1.5px solid #111;
+}
+
+/* ── Admin modal ── */
+.admin-modal { max-width: 420px; }
+.admin-modal-header { display: flex; justify-content: space-between; align-items: center; }
+.admin-modal-header h2 { font-size: 1.1rem; font-weight: 600; }
+.admin-section-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); font-weight: 600; margin: 4px 0 10px; }
+.admin-empty { font-size: 0.88rem; color: var(--muted); text-align: center; padding: 1rem 0; }
+
+.admin-user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.admin-user-row:last-child { border-bottom: none; }
+.admin-user-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.admin-username { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+.admin-user-time { font-size: 0.72rem; color: var(--muted); }
+.admin-user-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.admin-approve-btn {
+  padding: 5px 12px;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.admin-approve-btn:hover { background: var(--green-dark); }
+.admin-reject-btn {
+  padding: 5px 12px;
+  background: transparent;
+  color: var(--red);
+  border: 1px solid var(--red);
+  border-radius: 7px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.admin-reject-btn:hover { background: var(--red); color: #fff; }
+
 /* ── Header ── */
 .header { margin-bottom: 1.75rem; }
 .header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }

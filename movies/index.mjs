@@ -10,9 +10,10 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 import { createHmac } from "crypto";
 
-const client = new DynamoDBClient({});
-const ddb    = DynamoDBDocumentClient.from(client);
-const SECRET = process.env.AUTH_SECRET || "downlowe-secret";
+const client  = new DynamoDBClient({});
+const ddb     = DynamoDBDocumentClient.from(client);
+const SECRET  = process.env.AUTH_SECRET || "downlowe-secret";
+const ADMINS  = new Set((process.env.ADMIN_USERNAMES || "trevor").split(",").map(u => u.trim().toLowerCase()));
 
 const CORS = {
   "Access-Control-Allow-Origin":  "*",
@@ -45,6 +46,10 @@ function getUser(event) {
   const token = auth.replace("Bearer ", "").trim();
   return token ? verifyToken(token) : null;
 }
+function isAdminUser(event) {
+  const username = getUser(event);
+  return username && ADMINS.has(username) ? username : null;
+}
 
 // ── Handler ───────────────────────────────────────────────────────────────────
 
@@ -60,6 +65,13 @@ export const handler = async (event) => {
     // Auth
     if (method === "POST" && s0 === "auth" && s1 === "register") return await register(event);
     if (method === "POST" && s0 === "auth" && s1 === "login")    return await login(event);
+
+    // Admin
+    if (s0 === "admin" && s1 === "users") {
+      if (method === "GET"  && !s2)                   return await adminListUsers(event);
+      if (method === "POST" && s2 && s3 === "approve") return await adminApproveUser(event, s2);
+      if (method === "POST" && s2 && s3 === "reject")  return await adminRejectUser(event, s2);
+    }
 
     // Movies
     if (method === "GET"    && s0 === "movies" && !s1) return await getMovies();
@@ -114,6 +126,38 @@ export const handler = async (event) => {
   }
 };
 
+// ── Admin ─────────────────────────────────────────────────────────────────────
+
+async function adminListUsers(event) {
+  if (!isAdminUser(event)) return err(403, "Forbidden");
+  const res     = await ddb.send(new ScanCommand({ TableName: "users" }));
+  const pending = (res.Items || [])
+    .filter(u => u.status === "pending")
+    .map(u => ({ username: u.username, createdAt: u.createdAt }))
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  return ok({ pending });
+}
+
+async function adminApproveUser(event, username) {
+  if (!isAdminUser(event)) return err(403, "Forbidden");
+  const user = await ddb.send(new GetCommand({ TableName: "users", Key: { username } }));
+  if (!user.Item) return err(404, "User not found");
+  await ddb.send(new UpdateCommand({
+    TableName: "users", Key: { username },
+    UpdateExpression: "SET #s = :active",
+    ExpressionAttributeNames:  { "#s": "status" },
+    ExpressionAttributeValues: { ":active": "active" },
+  }));
+  return ok({ approved: true });
+}
+
+async function adminRejectUser(event, username) {
+  if (!isAdminUser(event)) return err(403, "Forbidden");
+  // Delete the record entirely, freeing the username for re-registration
+  await ddb.send(new DeleteCommand({ TableName: "users", Key: { username } }));
+  return ok({ rejected: true });
+}
+
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
 async function register(event) {
@@ -122,9 +166,13 @@ async function register(event) {
   if (!clean || !password.trim()) return err(400, "Username and password required");
   if (!/^[a-z0-9_]{2,20}$/.test(clean)) return err(400, "Username must be 2–20 chars (letters, numbers, underscore)");
   const existing = await ddb.send(new GetCommand({ TableName: "users", Key: { username: clean } }));
-  if (existing.Item) return err(409, "Username already taken");
-  await ddb.send(new PutCommand({ TableName: "users", Item: { username: clean, password: password.trim(), createdAt: new Date().toISOString() } }));
-  return created({ username: clean, token: makeToken(clean) });
+  // Block if already active or pending; allow re-registration if previously rejected (record deleted)
+  if (existing.Item && existing.Item.status !== "rejected") return err(409, "Username already taken");
+  const isAdmin = ADMINS.has(clean);
+  const status  = isAdmin ? "active" : "pending";
+  await ddb.send(new PutCommand({ TableName: "users", Item: { username: clean, password: password.trim(), createdAt: new Date().toISOString(), status } }));
+  if (isAdmin) return created({ username: clean, token: makeToken(clean), isAdmin: true });
+  return created({ pending: true, message: "Account requested! You'll be able to sign in once approved." });
 }
 
 async function login(event) {
@@ -133,7 +181,11 @@ async function login(event) {
   if (!clean || !password.trim()) return err(400, "Username and password required");
   const user = await ddb.send(new GetCommand({ TableName: "users", Key: { username: clean } }));
   if (!user.Item || user.Item.password !== password.trim()) return err(401, "Invalid username or password");
-  return ok({ username: clean, token: makeToken(clean) });
+  // Treat missing status as active for backwards compatibility with existing accounts
+  const status = user.Item.status ?? "active";
+  if (status === "pending")  return err(403, "Your account is pending admin approval");
+  if (status === "rejected") return err(403, "Your account request was not approved — please contact the admin");
+  return ok({ username: clean, token: makeToken(clean), isAdmin: ADMINS.has(clean) });
 }
 
 // ── Movies ────────────────────────────────────────────────────────────────────

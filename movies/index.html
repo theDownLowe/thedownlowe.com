@@ -32,6 +32,18 @@
     </div>
   </div>
 
+  <!-- Admin modal -->
+  <div class="auth-overlay" id="adminModal">
+    <div class="auth-modal admin-modal">
+      <div class="admin-modal-header">
+        <h2>🛡 Admin Panel</h2>
+        <button class="preview-clear" onclick="closeAdminModal()" title="Close">✕</button>
+      </div>
+      <div class="admin-section-label">Pending Account Requests</div>
+      <div id="adminPendingList"></div>
+    </div>
+  </div>
+
   <!-- Create list modal -->
   <div class="auth-overlay" id="createListModal">
     <div class="auth-modal create-list-modal">
@@ -66,7 +78,13 @@
           <div>
             <div class="logo">Laylee's <span>Movie</span> Lounge</div>
           </div>
-          <button class="auth-btn" id="authBtn" onclick="auth ? logout() : openAuthModal()">Sign in</button>
+          <div class="header-actions">
+            <button class="admin-btn" id="adminBtn" style="display:none" onclick="openAdminModal()" title="Admin panel">
+              🛡
+              <span class="admin-badge" id="adminBadge" style="display:none"></span>
+            </button>
+            <button class="auth-btn" id="authBtn" onclick="auth ? logout() : openAuthModal()">Sign in</button>
+          </div>
         </div>
       </header>
 

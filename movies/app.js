@@ -18,9 +18,12 @@ function cacheGet(key) {
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
-let auth = JSON.parse(localStorage.getItem("downlowe_auth") || "null");
+let auth         = JSON.parse(localStorage.getItem("downlowe_auth") || "null");
+let pendingUsers = [];
+
 function saveAuth(data) { auth = data; localStorage.setItem("downlowe_auth", JSON.stringify(data)); }
 function clearAuth()    { auth = null; localStorage.removeItem("downlowe_auth"); }
+function isAdminSession() { return !!(auth?.isAdmin || auth?.username === "trevor"); }
 function jsonHeaders() {
   const h = { "Content-Type": "application/json" };
   if (auth) h["Authorization"] = `Bearer ${auth.token}`;
@@ -156,7 +159,9 @@ function setAuthMode(mode) {
   document.getElementById("authWarning").style.display      = r ? "block" : "none";
   document.getElementById("toggleToRegister").style.display = r ? "none" : "block";
   document.getElementById("toggleToLogin").style.display    = r ? "block" : "none";
-  document.getElementById("authError").textContent          = "";
+  const authErr = document.getElementById("authError");
+  authErr.textContent = "";
+  authErr.style.color = "";
 }
 async function submitAuth() {
   const username = document.getElementById("authUsername").value.trim().toLowerCase();
@@ -169,18 +174,97 @@ async function submitAuth() {
     const res  = await fetch(`${API}/auth/${authModalMode === "login" ? "login" : "register"}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, password }) });
     const data = await res.json();
     if (!res.ok) { errorEl.textContent = data.error || "Something went wrong."; return; }
-    saveAuth({ username: data.username, token: data.token });
+    if (data.pending) {
+      errorEl.style.color = "var(--green)";
+      errorEl.textContent = data.message || "Account requested! Awaiting admin approval.";
+      document.getElementById("authUsername").value = "";
+      document.getElementById("authPassword").value = "";
+      return;
+    }
+    errorEl.style.color = "";
+    saveAuth({ username: data.username, token: data.token, isAdmin: data.isAdmin || false });
     document.getElementById("authUsername").value = "";
     document.getElementById("authPassword").value = "";
     closeAuthModal(); updateAuthUI(); render();
   } catch (e) { errorEl.textContent = "Connection error. Please try again."; }
   finally { btn.disabled = false; btn.textContent = authModalMode === "login" ? "Sign in" : "Create account"; }
 }
-function logout() { clearAuth(); updateAuthUI(); render(); }
+function logout() { clearAuth(); pendingUsers = []; updateAuthUI(); render(); }
+
+// ── Admin panel ───────────────────────────────────────────────────────────────
+function openAdminModal() {
+  document.getElementById("adminModal").classList.add("open");
+  renderAdminModal();
+}
+function closeAdminModal() {
+  document.getElementById("adminModal").classList.remove("open");
+}
+function renderAdminModal() {
+  const list = document.getElementById("adminPendingList");
+  if (!pendingUsers.length) {
+    list.innerHTML = '<div class="admin-empty">No pending requests 🎉</div>';
+    return;
+  }
+  list.innerHTML = pendingUsers.map(u => `
+    <div class="admin-user-row">
+      <div class="admin-user-info">
+        <span class="admin-username">${escHtml(u.username)}</span>
+        <span class="admin-user-time">${timeAgo(u.createdAt)}</span>
+      </div>
+      <div class="admin-user-actions">
+        <button class="admin-approve-btn" onclick="adminApprove('${escHtml(u.username)}')">Approve</button>
+        <button class="admin-reject-btn"  onclick="adminReject('${escHtml(u.username)}')">Reject</button>
+      </div>
+    </div>`).join("");
+}
+async function adminApprove(username) {
+  try {
+    const res = await fetch(`${API}/admin/users/${username}/approve`, { method: "POST", headers: jsonHeaders() });
+    if (!res.ok) { alert("Failed to approve."); return; }
+    pendingUsers = pendingUsers.filter(u => u.username !== username);
+    updateAuthUI(); renderAdminModal();
+  } catch (e) { alert("Connection error."); }
+}
+async function adminReject(username) {
+  if (!confirm(`Reject "${username}"? Their username will be freed for re-registration.`)) return;
+  try {
+    const res = await fetch(`${API}/admin/users/${username}/reject`, { method: "POST", headers: jsonHeaders() });
+    if (!res.ok) { alert("Failed to reject."); return; }
+    pendingUsers = pendingUsers.filter(u => u.username !== username);
+    updateAuthUI(); renderAdminModal();
+  } catch (e) { alert("Connection error."); }
+}
+async function loadAdminData() {
+  if (!isAdminSession()) return;
+  try {
+    const res  = await fetch(`${API}/admin/users`, { headers: jsonHeaders() });
+    const data = await res.json();
+    pendingUsers = data.pending || [];
+    updateAuthUI();
+  } catch (e) { console.error("Failed to load admin data:", e); }
+}
 function updateAuthUI() {
-  const btn = document.getElementById("authBtn"), sec = document.getElementById("suggestSection");
-  if (auth) { btn.textContent = `${auth.username} · sign out`; btn.classList.add("logged-in"); sec.classList.remove("locked"); }
-  else { btn.textContent = "Sign in"; btn.classList.remove("logged-in"); sec.classList.add("locked"); }
+  const btn      = document.getElementById("authBtn");
+  const sec      = document.getElementById("suggestSection");
+  const adminBtn = document.getElementById("adminBtn");
+  const badge    = document.getElementById("adminBadge");
+  if (auth) {
+    btn.textContent = `${auth.username} · sign out`;
+    btn.classList.add("logged-in");
+    sec.classList.remove("locked");
+    if (isAdminSession()) {
+      adminBtn.style.display = "";
+      badge.textContent      = pendingUsers.length || "";
+      badge.style.display    = pendingUsers.length ? "" : "none";
+    } else {
+      adminBtn.style.display = "none";
+    }
+  } else {
+    btn.textContent = "Sign in";
+    btn.classList.remove("logged-in");
+    sec.classList.add("locked");
+    adminBtn.style.display = "none";
+  }
 }
 
 // ── Tab switching ─────────────────────────────────────────────────────────────
@@ -1475,7 +1559,9 @@ async function loadWatched() {
   } catch (e) { console.error("Failed to load watched:", e); }
 }
 async function loadAll() {
-  await Promise.all([loadMovies(), loadQueue(), loadLists(), loadWatched(), loadChat()]);
+  const tasks = [loadMovies(), loadQueue(), loadLists(), loadWatched(), loadChat()];
+  if (isAdminSession()) tasks.push(loadAdminData());
+  await Promise.all(tasks);
   movies.forEach(m => { if (cardComments[m.movieId] === undefined) fetchComments(m.movieId); });
 }
 function startPolling() {
