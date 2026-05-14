@@ -377,8 +377,8 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 .collection-badge:last-child { border-right: none; }
 .movie-card.now-watching .collection-badges { background: rgba(0,0,0,0.18); border-bottom-color: rgba(255,255,255,0.1); }
 .movie-card.now-watching .collection-badge  { color: #FFD9B0; border-right-color: rgba(255,255,255,0.1); }
-.vote-area { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
-.vote-buttons { display: flex; align-items: center; gap: 5px; }
+.vote-area { display: flex; flex-direction: column; align-items: stretch; gap: 5px; flex-shrink: 0; }
+.vote-buttons { display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
 .vote-btn { width: 32px; height: 32px; border-radius: 7px; border: 1px solid var(--border); background: transparent; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; transition: background 0.1s, border-color 0.1s; color: var(--muted); }
 .vote-btn:hover { background: #f3f3f1; border-color: #aaa; }
 .vote-btn.up.active { background: #e6f5ef; border-color: #a3d9c3; color: var(--green); }
