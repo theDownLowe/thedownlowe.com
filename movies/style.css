@@ -409,6 +409,7 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
   cursor: pointer;
   padding: 0;
   flex-shrink: 0;
+  margin-left: auto;
 }
 .rating-zero-btn .zero-path {
   fill: none;
@@ -475,7 +476,6 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
   width: 38px;
   white-space: nowrap;
   flex-shrink: 0;
-  margin-left: auto;
 }
 .rating-avg-btn:hover { background: #f0ede9; }
 .rating-avg-none { color: #bbb; font-weight: 400; cursor: default; }

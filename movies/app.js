@@ -1320,10 +1320,10 @@ function buildCard(m, rank, mode, listId = null) {
     ? `<button class="rating-avg-btn" data-movie="${m.movieId}" onclick="openRatingTooltip('${m.movieId}',this)" title="See all ratings">${avgRating.toFixed(1)}<sup class="rating-sup">${ratingCount}</sup></button>`
     : `<span class="rating-avg-btn rating-avg-none">—</span>`;
   const voteRatingRow = `<div class="vote-rating-row" data-movie="${m.movieId}">
+    ${avgBtn}
     ${zeroStar}
     <span class="rating-sep"></span>
     <div class="rating-stars-group" data-movie="${m.movieId}">${fiveStars}</div>
-    ${avgBtn}
   </div>`;
 
   // Right-side button(s)
