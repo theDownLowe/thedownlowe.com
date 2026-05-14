@@ -1215,9 +1215,15 @@ function setSort(mode, el) {
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active")); el.classList.add("active");
   render();
 }
+function avgStars(m) {
+  const vals = Object.values(m.ratings || {}).map(Number);
+  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : -1;
+}
 function sorted() {
   const list = [...movies];
-  return sortMode === "score" ? list.sort((a, b) => (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes)) : list.sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt));
+  if (sortMode === "score") return list.sort((a, b) => (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes));
+  if (sortMode === "stars") return list.sort((a, b) => avgStars(b) - avgStars(a));
+  return list.sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt));
 }
 function onRankingsSearch() {
   rankingsFilter = document.getElementById("rankingsSearch").value.trim().toLowerCase();
