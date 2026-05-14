@@ -389,9 +389,10 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 
 /* ── Star rating row (inside vote-area, below vote buttons) ── */
 .vote-rating-row {
-  display: grid;
-  grid-template-columns: 22px 7px 100px 38px;
+  display: flex;
   align-items: center;
+  gap: 2px;
+  width: 100%;
 }
 
 .star-svg { width: 16px; height: 16px; display: block; }
@@ -473,6 +474,8 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
   text-align: center;
   width: 38px;
   white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 .rating-avg-btn:hover { background: #f0ede9; }
 .rating-avg-none { color: #bbb; font-weight: 400; cursor: default; }
