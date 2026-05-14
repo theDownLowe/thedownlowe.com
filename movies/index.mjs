@@ -82,6 +82,10 @@ export const handler = async (event) => {
     if (method === "POST" && s0 === "vote") return await castVote(event);
     if (method === "POST" && s0 === "seen") return await toggleSeen(event);
 
+    // Ratings
+    if (method === "POST"   && s0 === "ratings" && !s1) return await setRating(event);
+    if (method === "DELETE" && s0 === "ratings" &&  s1) return await removeRating(event, s1);
+
     // Queue
     if (method === "GET"    && s0 === "queue" && !s1) return await getQueue();
     if (method === "POST"   && s0 === "queue" && !s1) return await addToQueue(event);
@@ -287,6 +291,42 @@ async function toggleSeen(event) {
   const seen   = seenBy.includes(username);
   await ddb.send(new UpdateCommand({ TableName: "movies", Key: { movieId }, UpdateExpression: seen ? "DELETE seenBy :u" : "ADD seenBy :u", ExpressionAttributeValues: { ":u": new Set([username]) } }));
   return ok({ seen: !seen });
+}
+
+// ── Ratings ───────────────────────────────────────────────────────────────────
+
+async function setRating(event) {
+  const username = getUser(event);
+  if (!username) return err(401, "Login required");
+  const { movieId, rating } = JSON.parse(event.body || "{}");
+  if (!movieId) return err(400, "movieId required");
+  if (!Number.isInteger(rating) || rating < 0 || rating > 5) return err(400, "rating must be integer 0–5");
+  const movie = await ddb.send(new GetCommand({ TableName: "movies", Key: { movieId } }));
+  if (!movie.Item) return err(404, "Movie not found");
+  const ratings = { ...(movie.Item.ratings || {}), [username]: rating };
+  await ddb.send(new UpdateCommand({
+    TableName: "movies", Key: { movieId },
+    UpdateExpression: "SET #r = :ratings",
+    ExpressionAttributeNames:  { "#r": "ratings" },
+    ExpressionAttributeValues: { ":ratings": ratings },
+  }));
+  return ok({ ratings });
+}
+
+async function removeRating(event, movieId) {
+  const username = getUser(event);
+  if (!username) return err(401, "Login required");
+  const movie = await ddb.send(new GetCommand({ TableName: "movies", Key: { movieId } }));
+  if (!movie.Item) return err(404, "Movie not found");
+  const ratings = { ...(movie.Item.ratings || {}) };
+  delete ratings[username];
+  await ddb.send(new UpdateCommand({
+    TableName: "movies", Key: { movieId },
+    UpdateExpression: "SET #r = :ratings",
+    ExpressionAttributeNames:  { "#r": "ratings" },
+    ExpressionAttributeValues: { ":ratings": ratings },
+  }));
+  return ok({ ratings });
 }
 
 // ── Queue ─────────────────────────────────────────────────────────────────────

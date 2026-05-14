@@ -386,6 +386,178 @@ a.imdb-link:hover { color: var(--green); text-decoration: underline; }
 .score { font-size: 0.95rem; font-weight: 500; min-width: 32px; text-align: center; }
 .score.pos { color: var(--green); } .score.neg { color: var(--red); } .score.zero { color: var(--muted); }
 
+/* ── Star rating row ── */
+.card-rating-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-top: 1px solid #f0ece8;
+  background: #fdfcfb;
+}
+
+.star-svg { width: 20px; height: 20px; display: block; }
+
+/* Zero star button */
+.rating-zero-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+.rating-zero-btn .zero-path {
+  fill: none;
+  stroke: #ccc;
+  stroke-width: 1.6;
+  transition: stroke 0.15s;
+}
+.rating-zero-btn .zero-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 6.5px;
+  font-weight: 800;
+  color: #aaa;
+  line-height: 1;
+  pointer-events: none;
+  transition: color 0.15s;
+}
+.rating-zero-btn:hover .zero-path { stroke: #e05030; }
+.rating-zero-btn:hover .zero-label { color: #e05030; }
+.rating-zero-btn.active .zero-path { stroke: #e05030; fill: #e05030; }
+.rating-zero-btn.active .zero-label { color: #fff; }
+
+/* Separator between 0 and 1-5 */
+.rating-sep {
+  width: 1px;
+  height: 18px;
+  background: #d8d4cf;
+  flex-shrink: 0;
+  margin: 0 2px;
+}
+
+/* 1–5 star buttons */
+.rating-stars-group { display: flex; gap: 1px; }
+.rating-star-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 28px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+.rating-star-btn .star-path {
+  fill: none;
+  stroke: #ccc;
+  stroke-width: 1.4;
+  transition: fill 0.1s, stroke 0.1s;
+}
+.rating-star-btn.filled .star-path {
+  fill: #F4B942;
+  stroke: #F4B942;
+}
+.rating-star-btn.hovered .star-path {
+  fill: #F4C96A;
+  stroke: #F4C96A;
+}
+
+/* Average display */
+.rating-avg {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #7a6a40;
+  min-width: 24px;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+.rating-avg-none { color: #bbb; font-weight: 400; }
+
+/* Tooltip button */
+.rating-tooltip-btn {
+  position: relative;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.82rem;
+  padding: 2px 4px;
+  color: var(--muted);
+  border-radius: 5px;
+  transition: background 0.1s;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.rating-tooltip-btn:hover { background: #f0ede9; }
+.rating-count {
+  font-size: 0.68rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* Rating tooltip popover */
+.rating-tooltip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  min-width: 180px;
+  max-width: 240px;
+  padding: 8px 0;
+}
+.rt-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 12px 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.rt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 12px;
+  gap: 8px;
+}
+.rt-user { font-size: 0.82rem; font-weight: 500; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rt-stars { font-size: 0.78rem; color: #F4B942; letter-spacing: 1px; flex-shrink: 0; }
+.rt-zero-star { position: relative; display: inline-block; font-size: 0.88rem; color: #e05030; flex-shrink: 0; }
+.rt-zero-num { font-size: 0.5rem; font-weight: 800; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -52%); color: #e05030; }
+.rt-empty { font-size: 0.82rem; color: var(--muted); text-align: center; padding: 8px 12px; }
+
+/* Now-watching card overrides for rating row */
+.movie-card.now-watching .card-rating-row { background: rgba(0,0,0,0.12); border-top-color: rgba(255,255,255,0.08); }
+.movie-card.now-watching .rating-zero-btn .zero-path { stroke: rgba(255,210,165,0.4); }
+.movie-card.now-watching .rating-zero-btn .zero-label { color: rgba(255,210,165,0.4); }
+.movie-card.now-watching .rating-zero-btn:hover .zero-path { stroke: #FFB090; }
+.movie-card.now-watching .rating-zero-btn:hover .zero-label { color: #FFB090; }
+.movie-card.now-watching .rating-zero-btn.active .zero-path { stroke: #e05030; fill: #e05030; }
+.movie-card.now-watching .rating-zero-btn.active .zero-label { color: #fff; }
+.movie-card.now-watching .rating-star-btn .star-path { stroke: rgba(255,210,165,0.3); }
+.movie-card.now-watching .rating-star-btn.filled .star-path { fill: #F4B942; stroke: #F4B942; }
+.movie-card.now-watching .rating-star-btn.hovered .star-path { fill: #F4C96A; stroke: #F4C96A; }
+.movie-card.now-watching .rating-sep { background: rgba(255,255,255,0.15); }
+.movie-card.now-watching .rating-avg { color: rgba(255,220,160,0.85); }
+.movie-card.now-watching .rating-avg-none { color: rgba(255,210,165,0.35); }
+.movie-card.now-watching .rating-tooltip-btn { color: rgba(255,210,165,0.5); }
+.movie-card.now-watching .rating-tooltip-btn:hover { background: rgba(255,255,255,0.08); }
+
 /* ── Card footer ── */
 .card-footer { border-top: 1px solid #f0ece8; padding: 8px 14px; display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 12px; background: #faf9f7; }
 

@@ -44,7 +44,8 @@ let sortMode           = "score";
 let selected           = null;
 let searchTimer        = null;
 let authModalMode      = "login";
-let openDropdownMovieId = null;  // which movie has its list-dropdown open
+let openDropdownMovieId    = null;  // which movie has its list-dropdown open
+let openRatingTooltipId    = null;  // which movie has its rating tooltip open
 let createListForMovieId = null; // movieId that triggered create modal
 let editingListId      = null;   // listId being edited inline
 let listAddSearchOpen   = null;   // listId with inline add-search open
@@ -119,6 +120,7 @@ document.addEventListener("click", (e) => {
   const path = e.composedPath();
   if (!path.some(el => el.classList?.contains("auth-modal")) && !path.some(el => el.classList?.contains("auth-btn"))) closeAuthModal();
   if (!path.some(el => el.classList?.contains("list-dropdown")) && !path.some(el => el.classList?.contains("queue-side-btn"))) closeListDropdown();
+  if (!path.some(el => el.classList?.contains("rating-tooltip")) && !path.some(el => el.classList?.contains("rating-tooltip-btn"))) closeRatingTooltip();
 });
 
 function showSearching() { const dd = document.getElementById("dropdown"); dd.innerHTML = '<div class="dropdown-searching">Searching...</div>'; dd.classList.add("open"); }
@@ -611,6 +613,71 @@ async function toggleSeen(movieId) {
   pendingSeen.add(movieId); render();
   try { await fetch(`${API}/seen`, { method: "POST", headers: jsonHeaders(), body: JSON.stringify({ movieId }) }); }
   catch (e) { console.error("Seen toggle failed:", e); } finally { pendingSeen.delete(movieId); }
+}
+
+// ── Ratings ───────────────────────────────────────────────────────────────────
+async function rateMovie(movieId, rating) {
+  if (!auth) { openAuthModal(); return; }
+  const movie = movies.find(m => m.movieId === movieId);
+  if (!movie) return;
+  const current = (movie.ratings || {})[auth.username];
+  if (current === rating) {
+    // Toggle off — unrate
+    const ratings = { ...(movie.ratings || {}) };
+    delete ratings[auth.username];
+    movie.ratings = ratings;
+    render();
+    try { await fetch(`${API}/ratings/${movieId}`, { method: "DELETE", headers: jsonHeaders() }); }
+    catch (e) { console.error("Remove rating failed:", e); }
+  } else {
+    movie.ratings = { ...(movie.ratings || {}), [auth.username]: rating };
+    render();
+    try { await fetch(`${API}/ratings`, { method: "POST", headers: jsonHeaders(), body: JSON.stringify({ movieId, rating }) }); }
+    catch (e) { console.error("Set rating failed:", e); }
+  }
+}
+
+function onStarHover(movieId, val) {
+  document.querySelectorAll(`.rating-star-btn[data-movie="${movieId}"]`).forEach(btn => {
+    btn.classList.toggle("hovered", parseInt(btn.dataset.val) <= val);
+  });
+}
+function onStarLeave(movieId) {
+  document.querySelectorAll(`.rating-star-btn[data-movie="${movieId}"]`).forEach(btn => {
+    btn.classList.remove("hovered");
+  });
+}
+
+function openRatingTooltip(movieId, btnEl) {
+  if (openRatingTooltipId === movieId) { closeRatingTooltip(); return; }
+  openRatingTooltipId = movieId;
+  const movie   = movies.find(m => m.movieId === movieId);
+  const ratings = movie?.ratings || {};
+  const entries = Object.entries(ratings).sort((a, b) => b[1] - a[1]);
+  const portal  = document.getElementById("rating-tooltip-portal");
+  const rect    = btnEl.getBoundingClientRect();
+  portal.style.top     = `${rect.bottom + 4}px`;
+  portal.style.right   = `${window.innerWidth - rect.right}px`;
+  portal.style.left    = "auto";
+  portal.style.display = "block";
+  const rows = entries.length
+    ? entries.map(([user, r]) => {
+        const stars = r === 0
+          ? `<span class="rt-zero-star">☆<span class="rt-zero-num">0</span></span>`
+          : `<span class="rt-stars">${"★".repeat(r)}${"☆".repeat(5 - r)}</span>`;
+        return `<div class="rt-row"><span class="rt-user">${escHtml(user)}</span>${stars}</div>`;
+      }).join("")
+    : `<div class="rt-empty">No ratings yet</div>`;
+  portal.innerHTML = `<div class="rating-tooltip">
+    <div class="rt-title">Ratings (${entries.length})</div>
+    ${rows}
+  </div>`;
+}
+function closeRatingTooltip() {
+  openRatingTooltipId = null;
+  const portal = document.getElementById("rating-tooltip-portal");
+  portal.style.display = "none";
+  portal.innerHTML = "";
 }
 
 // ── Queue ─────────────────────────────────────────────────────────────────────
@@ -1224,6 +1291,36 @@ function buildCard(m, rank, mode, listId = null) {
 
   const isNowWatching = mode === "queue" && nowWatching.has(m.movieId);
 
+  // ── Star rating row ──
+  const ratings     = m.ratings || {};
+  const ratingVals  = Object.values(ratings).map(Number);
+  const avgRating   = ratingVals.length ? ratingVals.reduce((a, b) => a + b, 0) / ratingVals.length : null;
+  const myRating    = auth?.username !== undefined ? ratings[auth.username] : undefined;
+  const hasMyRating = myRating !== undefined;
+  const starPath    = "M12 2 L14.59 8.41 L22 9.27 L16.91 14.22 L18.36 21.56 L12 18.1 L5.64 21.56 L7.09 14.22 L2 9.27 L9.41 8.41 Z";
+
+  const zeroStar = `<button class="rating-zero-btn${hasMyRating && myRating === 0 ? " active" : ""}" onclick="rateMovie('${m.movieId}',0)" title="Rate 0 stars">
+    <svg class="star-svg" viewBox="0 0 24 24"><path class="zero-path" d="${starPath}"/></svg>
+    <span class="zero-label">0</span>
+  </button>`;
+
+  const fiveStars = [1,2,3,4,5].map(n =>
+    `<button class="rating-star-btn${hasMyRating && myRating >= n ? " filled" : ""}" data-movie="${m.movieId}" data-val="${n}"
+      onmouseenter="onStarHover('${m.movieId}',${n})" onmouseleave="onStarLeave('${m.movieId}')"
+      onclick="rateMovie('${m.movieId}',${n})" title="${n} star${n!==1?"s":""}">
+      <svg class="star-svg" viewBox="0 0 24 24"><path class="star-path" d="${starPath}"/></svg>
+    </button>`
+  ).join("");
+
+  const ratingCount = ratingVals.length;
+  const ratingRow = `<div class="card-rating-row">
+    ${zeroStar}
+    <span class="rating-sep"></span>
+    <div class="rating-stars-group" data-movie="${m.movieId}">${fiveStars}</div>
+    ${avgRating !== null ? `<span class="rating-avg">${avgRating.toFixed(1)}</span>` : `<span class="rating-avg rating-avg-none">—</span>`}
+    <button class="rating-tooltip-btn" data-movie="${m.movieId}" onclick="openRatingTooltip('${m.movieId}',this)" title="See all ratings">🔍${ratingCount ? `<span class="rating-count">${ratingCount}</span>` : ""}</button>
+  </div>`;
+
   // Right-side button(s)
   let sideBtn = "";
   if (mode === "nominations") {
@@ -1289,6 +1386,7 @@ function buildCard(m, rank, mode, listId = null) {
         <button class="vote-btn seen-vote-btn${hasSeen ? " active" : ""}" onclick="toggleSeen('${m.movieId}')" title="${hasSeen ? "Unmark as seen" : "Mark as seen"}">👁</button>
       </div>
     </div>
+    ${ratingRow}
     <div class="card-footer">
       ${watchedDateRow}
       ${footerContent}
