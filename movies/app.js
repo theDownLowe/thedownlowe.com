@@ -1222,7 +1222,14 @@ function avgStars(m) {
 function sorted() {
   const list = [...movies];
   if (sortMode === "score") return list.sort((a, b) => (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes));
-  if (sortMode === "stars") return list.sort((a, b) => avgStars(b) - avgStars(a));
+  if (sortMode === "stars") return list.sort((a, b) => {
+    const avgDiff = avgStars(b) - avgStars(a);
+    if (avgDiff !== 0) return avgDiff;
+    const aCount = Object.values(a.ratings || {}).length;
+    const bCount = Object.values(b.ratings || {}).length;
+    if (bCount !== aCount) return bCount - aCount;
+    return new Date(b.addedAt) - new Date(a.addedAt);
+  });
   return list.sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt));
 }
 function onRankingsSearch() {
