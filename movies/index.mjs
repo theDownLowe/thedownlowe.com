@@ -98,8 +98,10 @@ export const handler = async (event) => {
     if (method === "PUT"    && s0 === "watched" &&  s1) return await updateWatchedDate(event, s1);
     if (method === "DELETE" && s0 === "watched" &&  s1) return await removeFromWatched(event, s1);
 
-    // Now Watching (Discord notification)
-    if (method === "POST" && s0 === "nowwatching") return await postNowWatching(event);
+    // Now Watching
+    if (method === "GET"    && s0 === "nowwatching" && !s1) return await getNowWatching();
+    if (method === "POST"   && s0 === "nowwatching" && !s1) return await postNowWatching(event);
+    if (method === "DELETE" && s0 === "nowwatching" &&  s1) return await removeNowWatching(event, s1);
 
     // Lists
     if (method === "GET"    && s0 === "lists" && !s1)                          return await getLists();
@@ -242,6 +244,11 @@ async function deleteMovie(event, movieId) {
   await Promise.all([
     ddb.send(new PutCommand({ TableName: "queue", Item: { queueId: "main",    movieIds: (q.Item?.movieIds || []).filter(id => id !== movieId) } })),
     ddb.send(new PutCommand({ TableName: "queue", Item: { queueId: "watched", movieIds: (w.Item?.movieIds || []).filter(id => id !== movieId) } })),
+    (async () => {
+      const nw = await ddb.send(new GetCommand({ TableName: "queue", Key: { queueId: "nowwatching" } }));
+      const nwIds = (nw.Item?.movieIds || []).filter(id => id !== movieId);
+      return ddb.send(new PutCommand({ TableName: "queue", Item: { queueId: "nowwatching", movieIds: nwIds } }));
+    })(),
     ...(listsRes.Items || [])
       .filter(l => (l.movieIds || []).includes(movieId))
       .map(l => ddb.send(new UpdateCommand({
@@ -413,24 +420,51 @@ async function removeFromWatched(event, movieId) {
   return ok({ movieIds, watchedDates });
 }
 
-// ── Now Watching (Discord) ────────────────────────────────────────────────────
+// ── Now Watching (Discord + persistence) ─────────────────────────────────────
+
+async function getNowWatching() {
+  const res = await ddb.send(new GetCommand({ TableName: "queue", Key: { queueId: "nowwatching" } }));
+  return ok({ movieIds: res.Item?.movieIds || [] });
+}
 
 async function postNowWatching(event) {
   const username = getUser(event);
   if (!username) return err(401, "Login required");
-  const { movieTitle, imdbId } = JSON.parse(event.body || "{}");
+  const { movieTitle, imdbId, movieId } = JSON.parse(event.body || "{}");
   if (!movieTitle?.trim()) return err(400, "movieTitle required");
+
+  // Persist the now-watching state
+  if (movieId) {
+    const res      = await ddb.send(new GetCommand({ TableName: "queue", Key: { queueId: "nowwatching" } }));
+    const existing = res.Item?.movieIds || [];
+    if (!existing.includes(movieId)) {
+      await ddb.send(new PutCommand({ TableName: "queue", Item: { queueId: "nowwatching", movieIds: [...existing, movieId] } }));
+    }
+  }
+
+  // Send Discord notification
   const webhookUrl = process.env.DISCORD_WEBHOOK;
-  if (!webhookUrl) return err(500, "Discord webhook not configured");
-  const titleText = imdbId
-    ? `[**${movieTitle.trim()}**](https://www.imdb.com/title/${imdbId}/)`
-    : `**${movieTitle.trim()}**`;
-  await fetch(webhookUrl, {
-    method:  "POST",
-    headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify({ content: `🎬 Now Watching: ${titleText}` }),
-  });
+  if (webhookUrl) {
+    const titleText = imdbId
+      ? `[**${movieTitle.trim()}**](https://www.imdb.com/title/${imdbId}/)`
+      : `**${movieTitle.trim()}**`;
+    try {
+      await fetch(webhookUrl, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ content: `🎬 Now Watching: ${titleText}` }),
+      });
+    } catch (e) { console.error("Discord webhook failed:", e); }
+  }
   return ok({ posted: true });
+}
+
+async function removeNowWatching(event, movieId) {
+  if (!getUser(event)) return err(401, "Login required");
+  const res      = await ddb.send(new GetCommand({ TableName: "queue", Key: { queueId: "nowwatching" } }));
+  const movieIds = (res.Item?.movieIds || []).filter(id => id !== movieId);
+  await ddb.send(new PutCommand({ TableName: "queue", Item: { queueId: "nowwatching", movieIds } }));
+  return ok({ movieIds });
 }
 
 // ── Lists ─────────────────────────────────────────────────────────────────────

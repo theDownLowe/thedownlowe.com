@@ -600,8 +600,12 @@ async function deleteMovie(movieId) {
   nowWatching.delete(movieId);
   lists      = lists.map(l => ({ ...l, movieIds: (l.movieIds || []).filter(id => id !== movieId) }));
   render();
-  try { await fetch(`${API}/movies/${movieId}`, { method: "DELETE", headers: jsonHeaders() }); }
-  catch (e) { console.error("Delete failed:", e); } finally { pendingDeletes.delete(movieId); }
+  try {
+    await Promise.all([
+      fetch(`${API}/movies/${movieId}`,      { method: "DELETE", headers: jsonHeaders() }),
+      fetch(`${API}/nowwatching/${movieId}`, { method: "DELETE", headers: jsonHeaders() }),
+    ]);
+  } catch (e) { console.error("Delete failed:", e); } finally { pendingDeletes.delete(movieId); }
 }
 
 // ── Seen ──────────────────────────────────────────────────────────────────────
@@ -704,6 +708,8 @@ async function toggleNowWatching(movieId) {
   if (nowWatching.has(movieId)) {
     nowWatching.delete(movieId);
     render();
+    try { await fetch(`${API}/nowwatching/${movieId}`, { method: "DELETE", headers: jsonHeaders() }); }
+    catch (e) { console.error("Remove now-watching failed:", e); }
     return;
   }
   nowWatching.add(movieId);
@@ -714,9 +720,9 @@ async function toggleNowWatching(movieId) {
       await fetch(`${API}/nowwatching`, {
         method:  "POST",
         headers: jsonHeaders(),
-        body:    JSON.stringify({ movieTitle: movie.title, imdbId: movie.imdbId || null }),
+        body:    JSON.stringify({ movieId, movieTitle: movie.title, imdbId: movie.imdbId || null }),
       });
-    } catch (e) { console.error("Discord notification failed:", e); }
+    } catch (e) { console.error("Now-watching update failed:", e); }
   }
 }
 
@@ -728,8 +734,12 @@ async function moveToWatched(movieId) {
   watchedIds   = [movieId, ...watchedIds.filter(id => id !== movieId)];
   watchedDates = { ...watchedDates, [movieId]: now };
   render();
-  try { await fetch(`${API}/watched`, { method: "POST", headers: jsonHeaders(), body: JSON.stringify({ movieId, watchedAt: now }) }); }
-  catch (e) { console.error("Move to watched failed:", e); }
+  try {
+    await Promise.all([
+      fetch(`${API}/watched`,              { method: "POST",   headers: jsonHeaders(), body: JSON.stringify({ movieId, watchedAt: now }) }),
+      fetch(`${API}/nowwatching/${movieId}`, { method: "DELETE", headers: jsonHeaders() }),
+    ]);
+  } catch (e) { console.error("Move to watched failed:", e); }
 }
 
 async function removeFromWatched(movieId) {
@@ -1651,6 +1661,19 @@ async function loadMovies() {
     if (JSON.stringify(data) !== JSON.stringify(movies)) { movies = data; render(); }
   } catch (e) { document.getElementById("movieList").innerHTML = '<div class="empty">Could not load movies. Try refreshing.</div>'; }
 }
+async function loadNowWatching() {
+  try {
+    const res  = await fetch(`${API}/nowwatching`);
+    const data = await res.json();
+    const ids  = data.movieIds || [];
+    const changed = ids.length !== nowWatching.size || ids.some(id => !nowWatching.has(id));
+    if (changed) {
+      nowWatching.clear();
+      ids.forEach(id => nowWatching.add(id));
+      render();
+    }
+  } catch (e) { console.error("Failed to load now-watching:", e); }
+}
 async function loadQueue() {
   try {
     const res = await fetch(`${API}/queue`), data = await res.json();
@@ -1677,7 +1700,7 @@ async function loadWatched() {
   } catch (e) { console.error("Failed to load watched:", e); }
 }
 async function loadAll() {
-  const tasks = [loadMovies(), loadQueue(), loadLists(), loadWatched(), loadChat()];
+  const tasks = [loadMovies(), loadQueue(), loadNowWatching(), loadLists(), loadWatched(), loadChat()];
   if (isAdminSession()) tasks.push(loadAdminData());
   await Promise.all(tasks);
   movies.forEach(m => { if (cardComments[m.movieId] === undefined) fetchComments(m.movieId); });
