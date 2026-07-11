@@ -160,9 +160,19 @@ function newGame() {
 
 function initIosHint() {
   const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  const isStandalone = navigator.standalone === true;
+  // True when launched from the iOS home screen icon (standalone PWA mode)
+  const isStandalone =
+    navigator.standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
   const dismissed = localStorage.getItem('gc_tm_ios_hint');
-  if (!isIos || isStandalone || dismissed) return;
+
+  // If they've already added to home screen, clear the flag — hint is no longer needed
+  if (isStandalone) {
+    localStorage.removeItem('gc_tm_ios_hint');
+    return;
+  }
+
+  if (!isIos || dismissed) return;
 
   const hint = document.getElementById('ios-hint');
   hint.classList.remove('hidden');

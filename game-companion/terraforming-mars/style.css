@@ -68,16 +68,22 @@ body {
 }
 
 .ios-hint-close {
-  background: none;
-  border: none;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   cursor: pointer;
-  padding: 0.25rem;
   flex-shrink: 0;
   line-height: 1;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
-.ios-hint-close:hover { color: var(--text); }
+.ios-hint-close:hover { border-color: var(--accent); color: var(--text); }
 
 /* ---- Toast ---- */
 
