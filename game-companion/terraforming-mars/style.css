@@ -397,7 +397,7 @@ body {
   border: 1px solid var(--border);
   color: var(--text);
   border-radius: 4px;
-  font-size: 1rem;
+  font-size: 1.15rem;
   line-height: 1;
   cursor: pointer;
   display: flex;
@@ -411,19 +411,18 @@ body {
 .res-btn:active { transform: scale(0.9); }
 
 /* ±5 variant — same size, smaller text */
-.res-sm { font-size: 0.62rem; font-weight: 700; }
+.res-sm { font-size: 0.78rem; font-weight: 700; }
 
 .res-val {
   flex: 1;
   text-align: center;
-  font-size: 1.1rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   min-width: 0;
 }
 
-.res-val-prod { color: var(--text-muted); }
-.res-val-amt  { color: var(--text); }
+.res-val-prod { color: var(--text-muted); font-size: 1.05rem; }
+.res-val-amt  { color: var(--text);       font-size: 1.3rem;  }
 
 /* Action buttons (Greenery / Raise Temp) */
 .action-btn {
@@ -686,12 +685,13 @@ body {
   .res-btn {
     height: 26px;
     min-width: 26px;
-    font-size: 0.88rem;
+    font-size: 1rem;
     border-radius: 3px;
   }
 
-  .res-sm  { font-size: 0.52rem; }
-  .res-val { font-size: 0.95rem; }
+  .res-sm       { font-size: 0.62rem; }
+  .res-val-prod { font-size: 0.9rem; }
+  .res-val-amt  { font-size: 1.1rem; }
 
   .action-btn {
     height: 26px;
