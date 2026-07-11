@@ -599,7 +599,6 @@ body {
 
   .undo-btn {
     flex-shrink: 0;
-    min-height: 0;
   }
 
   .end-gen-btn {
