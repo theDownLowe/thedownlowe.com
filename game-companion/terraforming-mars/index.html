@@ -20,8 +20,9 @@
     <header class="game-header">
       <a href="../" class="back-link-small">← Companions</a>
       <span class="game-title">Terraforming Mars</span>
+      <button id="log-btn"        class="btn-ghost">Log</button>
       <button id="fullscreen-btn" class="btn-ghost btn-icon" aria-label="Enter fullscreen"></button>
-      <button id="new-game-btn" class="btn-ghost">↺ New</button>
+      <button id="new-game-btn"   class="btn-ghost">↺ New</button>
     </header>
 
     <!--
@@ -31,7 +32,7 @@
     -->
     <div class="game-layout">
 
-      <!-- Stats: Generation, TR, End Generation -->
+      <!-- Stats sidebar -->
       <div class="stats-panel">
         <div class="stat-card gen-card">
           <span class="stat-label">Generation</span>
@@ -51,12 +52,25 @@
           </div>
         </div>
 
+        <button id="undo-btn"    class="undo-btn">Undo</button>
         <button id="end-gen-btn" class="end-gen-btn">End Generation</button>
       </div>
 
-      <!-- Resources: MC → Steel → Titanium → Plants → Energy → Heat -->
+      <!-- Resources: MC → Steel → Ti → Plants → Energy → Heat -->
       <div id="resources-grid" class="resources-grid"></div>
 
+    </div>
+  </div>
+
+  <!-- Log modal -->
+  <div id="log-modal" class="modal-overlay hidden">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <h2 class="modal-title">Change Log</h2>
+        <button id="log-close" class="modal-close" aria-label="Close">✕</button>
+      </div>
+      <div id="log-list" class="log-list"></div>
+      <button id="log-clear" class="log-clear-btn">Clear Log</button>
     </div>
   </div>
 
