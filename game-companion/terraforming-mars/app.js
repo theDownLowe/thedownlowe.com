@@ -143,7 +143,7 @@ function renderResources() {
           <span class="resource-icon">${r.icon}</span>
           <span class="resource-name">${r.label}</span>
         </div>
-        <div class="res-section">
+        <div class="prod-panel">
           <span class="res-section-label">Production</span>
           <div class="res-controls">
             <button class="res-btn res-sm" onclick="adjustResource('${r.id}','production',-5)">−5</button>
