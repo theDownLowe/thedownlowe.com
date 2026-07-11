@@ -421,8 +421,8 @@ body {
   min-width: 0;
 }
 
-.res-val-prod { color: var(--text-muted); font-size: 1.05rem; }
-.res-val-amt  { color: var(--text);       font-size: 1.3rem;  }
+.res-val-prod { color: var(--text-muted); font-size: 2rem; }
+.res-val-amt  { color: var(--text);       font-size: 2rem; }
 
 /* Action buttons (Greenery / Raise Temp) */
 .action-btn {
