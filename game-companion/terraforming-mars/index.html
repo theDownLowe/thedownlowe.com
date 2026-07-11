@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#080b14" />
   <title>Terraforming Mars — Game Companion</title>
@@ -21,61 +21,67 @@
       <div class="setup-hero">
         <span class="setup-icon">🚀</span>
         <h1 class="setup-title">Terraforming Mars</h1>
-        <p class="setup-subtitle">Set up your game to begin tracking</p>
+        <p class="setup-subtitle">Enter your name to begin tracking</p>
       </div>
-
-      <div class="setup-section">
-        <label class="setup-label">Number of Players</label>
-        <div class="player-count-group">
-          <button class="player-count-btn" data-count="1">1</button>
-          <button class="player-count-btn active" data-count="2">2</button>
-          <button class="player-count-btn" data-count="3">3</button>
-          <button class="player-count-btn" data-count="4">4</button>
-          <button class="player-count-btn" data-count="5">5</button>
-        </div>
+      <div class="setup-field">
+        <label class="setup-label" for="player-name">Your Name <span class="optional">(optional)</span></label>
+        <input
+          id="player-name"
+          class="setup-input"
+          type="text"
+          placeholder="e.g. Taylor"
+          maxlength="20"
+          autocomplete="off"
+          autocorrect="off"
+        />
       </div>
-
-      <div class="setup-section">
-        <label class="setup-label">Player Names</label>
-        <div id="player-inputs"></div>
-      </div>
-
-      <button id="start-game-btn" class="start-btn">Launch Game 🚀</button>
+      <button id="start-game-btn" class="start-btn">Start Game 🚀</button>
     </div>
   </div>
 
   <!-- Main game screen -->
-  <div id="main-game" class="hidden">
+  <div id="main-game" class="main-game hidden">
+
     <header class="game-header">
-      <div class="header-left">
-        <a href="../" class="back-link-small">← Companions</a>
-        <span class="game-title">Terraforming Mars</span>
-      </div>
-      <div class="header-center">
-        <span id="generation-display" class="generation-display">Generation 1</span>
-      </div>
-      <div class="header-right">
-        <button id="end-gen-btn" class="btn-primary">End Gen</button>
-        <button id="new-game-btn" class="btn-secondary">New Game</button>
-      </div>
+      <a href="../" class="back-link-small">← Companions</a>
+      <span class="game-title">Terraforming Mars</span>
+      <button id="new-game-btn" class="btn-ghost" aria-label="New game">↺ New</button>
     </header>
 
     <div class="game-body">
-      <!-- Global Parameters -->
-      <section class="params-section">
-        <h2 class="section-heading">Global Parameters</h2>
-        <div id="params-container" class="params-container"></div>
-      </section>
 
-      <!-- Players -->
-      <section class="players-section">
-        <h2 class="section-heading">Players</h2>
-        <div id="players-container" class="players-container"></div>
-      </section>
+      <!-- TR + Generation row -->
+      <div class="top-row">
+        <div class="gen-card">
+          <span class="stat-label">Generation</span>
+          <div class="stat-controls">
+            <button class="stat-btn" onclick="adjustGeneration(-1)">−</button>
+            <span id="gen-value" class="stat-value">1</span>
+            <button class="stat-btn" onclick="adjustGeneration(1)">+</button>
+          </div>
+        </div>
+        <div class="tr-card">
+          <span class="stat-label">TR</span>
+          <div class="stat-controls">
+            <button class="stat-btn" onclick="adjustTR(-1)">−</button>
+            <span id="tr-value" class="stat-value tr-accent">20</span>
+            <button class="stat-btn" onclick="adjustTR(1)">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resources grid -->
+      <div id="resources-grid" class="resources-grid"></div>
+
     </div>
+
+    <!-- Sticky bottom action bar -->
+    <div class="bottom-bar">
+      <button id="end-gen-btn" class="end-gen-btn">End Generation</button>
+    </div>
+
   </div>
 
-  <!-- End generation toast -->
   <div id="toast" class="toast hidden"></div>
 
   <script src="app.js"></script>
