@@ -689,9 +689,7 @@ body {
     border-radius: 3px;
   }
 
-  .res-sm       { font-size: 0.62rem; }
-  .res-val-prod { font-size: 0.9rem; }
-  .res-val-amt  { font-size: 1.1rem; }
+  .res-sm { font-size: 0.62rem; }
 
   .action-btn {
     height: 26px;
