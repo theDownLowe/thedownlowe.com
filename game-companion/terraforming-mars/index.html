@@ -14,39 +14,13 @@
 </head>
 <body>
 
-  <!-- Setup overlay (shown when no active game) -->
-  <div id="setup-overlay" class="setup-overlay">
-    <div class="setup-panel">
-      <a href="../" class="back-link">← Game Companion</a>
-      <div class="setup-hero">
-        <span class="setup-icon">🚀</span>
-        <h1 class="setup-title">Terraforming Mars</h1>
-        <p class="setup-subtitle">Enter your name to begin tracking</p>
-      </div>
-      <div class="setup-field">
-        <label class="setup-label" for="player-name">
-          Your Name <span class="optional">(optional)</span>
-        </label>
-        <input
-          id="player-name"
-          class="setup-input"
-          type="text"
-          placeholder="e.g. Taylor"
-          maxlength="20"
-          autocomplete="off"
-          autocorrect="off"
-        />
-      </div>
-      <button id="start-game-btn" class="start-btn">Start Game 🚀</button>
-    </div>
-  </div>
-
   <!-- Main game screen -->
-  <div id="main-game" class="main-game hidden">
+  <div id="main-game" class="main-game">
 
     <header class="game-header">
       <a href="../" class="back-link-small">← Companions</a>
       <span class="game-title">Terraforming Mars</span>
+      <button id="fullscreen-btn" class="btn-ghost btn-icon" aria-label="Enter fullscreen"></button>
       <button id="new-game-btn" class="btn-ghost">↺ New</button>
     </header>
 
@@ -84,6 +58,16 @@
       <div id="resources-grid" class="resources-grid"></div>
 
     </div>
+  </div>
+
+  <!-- iOS "Add to Home Screen" nudge (shown once, only on iOS) -->
+  <div id="ios-hint" class="ios-hint hidden">
+    <span class="ios-hint-text">
+      For fullscreen: tap
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      then <strong>Add to Home Screen</strong>
+    </span>
+    <button id="ios-hint-close" class="ios-hint-close" aria-label="Dismiss">✕</button>
   </div>
 
   <div id="toast" class="toast hidden"></div>

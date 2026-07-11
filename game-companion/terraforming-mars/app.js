@@ -59,27 +59,6 @@ function toast(msg, duration = 2500) {
   toastTimer = setTimeout(() => el.classList.add('hidden'), duration);
 }
 
-// ---- Setup ----
-
-function showSetup() {
-  document.getElementById('setup-overlay').classList.remove('hidden');
-  document.getElementById('main-game').classList.add('hidden');
-  setTimeout(() => document.getElementById('player-name')?.focus(), 100);
-}
-
-function hideSetup() {
-  document.getElementById('setup-overlay').classList.add('hidden');
-  document.getElementById('main-game').classList.remove('hidden');
-}
-
-function startGame() {
-  const name = document.getElementById('player-name')?.value.trim() || 'Player';
-  state = newState(name);
-  saveState();
-  hideSetup();
-  render();
-}
-
 // ---- Render ----
 
 function render() {
@@ -172,26 +151,67 @@ function endGeneration() {
 function newGame() {
   if (!confirm('Start a new game? All progress will be lost.')) return;
   clearState();
-  showSetup();
+  state = newState();
+  saveState();
+  render();
+}
+
+// ---- iOS install hint ----
+
+function initIosHint() {
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = navigator.standalone === true;
+  const dismissed = localStorage.getItem('gc_tm_ios_hint');
+  if (!isIos || isStandalone || dismissed) return;
+
+  const hint = document.getElementById('ios-hint');
+  hint.classList.remove('hidden');
+  document.getElementById('ios-hint-close').addEventListener('click', () => {
+    hint.classList.add('hidden');
+    localStorage.setItem('gc_tm_ios_hint', '1');
+  });
+}
+
+// ---- Fullscreen ----
+
+const ICON_EXPAND = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`;
+const ICON_COMPRESS = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/></svg>`;
+
+function initFullscreen() {
+  const btn = document.getElementById('fullscreen-btn');
+  if (!document.documentElement.requestFullscreen) {
+    btn.style.display = 'none';
+    return;
+  }
+  btn.innerHTML = ICON_EXPAND;
+  btn.addEventListener('click', () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      document.documentElement.requestFullscreen();
+    }
+  });
+  document.addEventListener('fullscreenchange', () => {
+    const full = !!document.fullscreenElement;
+    btn.innerHTML = full ? ICON_COMPRESS : ICON_EXPAND;
+    btn.setAttribute('aria-label', full ? 'Exit fullscreen' : 'Enter fullscreen');
+  });
 }
 
 // ---- Init ----
 
 function init() {
-  document.getElementById('start-game-btn').addEventListener('click', startGame);
-  document.getElementById('player-name').addEventListener('keydown', e => {
-    if (e.key === 'Enter') startGame();
-  });
   document.getElementById('end-gen-btn').addEventListener('click', endGeneration);
   document.getElementById('new-game-btn').addEventListener('click', newGame);
+  initFullscreen();
+  initIosHint();
 
   state = loadState();
-  if (state && state.resources) {
-    hideSetup();
-    render();
-  } else {
-    showSetup();
+  if (!state || !state.resources) {
+    state = newState();
+    saveState();
   }
+  render();
 }
 
 document.addEventListener('DOMContentLoaded', init);

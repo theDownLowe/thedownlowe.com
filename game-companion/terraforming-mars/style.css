@@ -29,9 +29,55 @@ body {
   overflow-x: hidden;
 }
 
-.hidden {
-  display: none !important;
+
+/* ---- iOS hint banner ---- */
+
+.ios-hint {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.65rem 0.75rem 0.65rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  z-index: 400;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  max-width: calc(100vw - 2rem);
+  white-space: nowrap;
 }
+
+.ios-hint-text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  white-space: normal;
+}
+
+.ios-hint-text strong { color: var(--text); }
+
+.ios-hint-text svg {
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.ios-hint-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.ios-hint-close:hover { color: var(--text); }
 
 /* ---- Toast ---- */
 
@@ -56,117 +102,6 @@ body {
   pointer-events: none;
 }
 
-/* ======================================================
-   SETUP OVERLAY
-   ====================================================== */
-
-.setup-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem 1rem;
-  padding-top: calc(1.5rem + env(safe-area-inset-top));
-  overflow-y: auto;
-  z-index: 200;
-}
-
-.setup-panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 2rem 1.5rem;
-  width: 100%;
-  max-width: 400px;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.back-link {
-  color: var(--text-muted);
-  text-decoration: none;
-  font-size: 0.8rem;
-}
-.back-link:hover { color: var(--text); }
-
-.setup-hero {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.setup-icon {
-  font-size: 2rem;
-  line-height: 1;
-  margin-bottom: 0.2rem;
-}
-
-.setup-title {
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: var(--accent2);
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-}
-
-.setup-subtitle {
-  color: var(--text-muted);
-  font-size: 0.875rem;
-}
-
-.setup-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.setup-label {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-}
-
-.optional {
-  font-weight: 400;
-  text-transform: none;
-  letter-spacing: 0;
-  opacity: 0.55;
-}
-
-.setup-input {
-  width: 100%;
-  padding: 0.7rem 0.9rem;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-size: 1rem;
-  min-height: 48px;
-}
-.setup-input:focus { outline: none; border-color: var(--accent); }
-.setup-input::placeholder { color: var(--text-muted); opacity: 0.45; }
-
-.start-btn {
-  width: 100%;
-  padding: 0.9rem;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s;
-  min-height: 52px;
-  letter-spacing: 0.02em;
-}
-.start-btn:hover  { background: var(--accent2); }
-.start-btn:active { transform: scale(0.98); }
 
 /* ======================================================
    MAIN GAME — SHARED STRUCTURE
@@ -221,6 +156,14 @@ body {
   transition: all 0.15s;
 }
 .btn-ghost:hover { border-color: var(--accent); color: var(--text); }
+
+.btn-icon {
+  width: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 /* ---- Common stat card pieces ---- */
 
