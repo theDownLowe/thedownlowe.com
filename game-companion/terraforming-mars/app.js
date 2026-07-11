@@ -99,7 +99,7 @@ function renderResources() {
           <span class="resource-name">${r.label}</span>
         </div>
         <div class="res-row">
-          <span class="res-row-label">Production</span>
+          <span class="res-row-label">Prod</span>
           <div class="res-controls">
             <button class="res-btn" onclick="adjustResource('${r.id}','production',-1)">−</button>
             <span class="res-val res-val-prod">${res.production}</span>
@@ -107,7 +107,7 @@ function renderResources() {
           </div>
         </div>
         <div class="res-row">
-          <span class="res-row-label">Amount</span>
+          <span class="res-row-label">Amt</span>
           <div class="res-controls">
             <button class="res-btn" onclick="adjustResource('${r.id}','amount',-1)">−</button>
             <span class="res-val res-val-amt">${res.amount}</span>

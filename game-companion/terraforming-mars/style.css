@@ -8,9 +8,8 @@
   --text:       #e8eaf0;
   --text-muted: #8892a4;
   --border:     #2a3347;
-  --radius:     12px;
-  --radius-sm:  8px;
-  --bottom-bar: 72px;
+  --radius:     10px;
+  --radius-sm:  6px;
 }
 
 * {
@@ -38,15 +37,15 @@ body {
 
 .toast {
   position: fixed;
-  bottom: calc(var(--bottom-bar) + 1rem + env(safe-area-inset-bottom));
+  bottom: 1.25rem;
   left: 50%;
   transform: translateX(-50%);
   background: var(--surface3);
   border: 1px solid var(--border);
   color: var(--text);
-  padding: 0.6rem 1.25rem;
+  padding: 0.5rem 1.1rem;
   border-radius: 999px;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 500;
   z-index: 500;
   white-space: nowrap;
@@ -54,9 +53,12 @@ body {
   max-width: calc(100vw - 2rem);
   overflow: hidden;
   text-overflow: ellipsis;
+  pointer-events: none;
 }
 
-/* ---- Setup overlay ---- */
+/* ======================================================
+   SETUP OVERLAY
+   ====================================================== */
 
 .setup-overlay {
   position: fixed;
@@ -77,33 +79,33 @@ body {
   border-radius: var(--radius);
   padding: 2rem 1.5rem;
   width: 100%;
-  max-width: 420px;
+  max-width: 400px;
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
+  gap: 1.5rem;
 }
 
 .back-link {
   color: var(--text-muted);
   text-decoration: none;
-  font-size: 0.825rem;
+  font-size: 0.8rem;
 }
 .back-link:hover { color: var(--text); }
 
 .setup-hero {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.3rem;
 }
 
 .setup-icon {
-  font-size: 2.25rem;
+  font-size: 2rem;
   line-height: 1;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.2rem;
 }
 
 .setup-title {
-  font-size: 1.75rem;
+  font-size: 1.6rem;
   font-weight: 800;
   color: var(--accent2);
   letter-spacing: -0.02em;
@@ -112,17 +114,17 @@ body {
 
 .setup-subtitle {
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 }
 
 .setup-field {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.5rem;
 }
 
 .setup-label {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -133,46 +135,42 @@ body {
   font-weight: 400;
   text-transform: none;
   letter-spacing: 0;
-  opacity: 0.6;
+  opacity: 0.55;
 }
 
 .setup-input {
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 0.7rem 0.9rem;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
   font-size: 1rem;
-  min-height: 52px;
+  min-height: 48px;
 }
-.setup-input:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-.setup-input::placeholder {
-  color: var(--text-muted);
-  opacity: 0.5;
-}
+.setup-input:focus { outline: none; border-color: var(--accent); }
+.setup-input::placeholder { color: var(--text-muted); opacity: 0.45; }
 
 .start-btn {
   width: 100%;
-  padding: 1rem;
+  padding: 0.9rem;
   background: var(--accent);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
   transition: background 0.15s;
-  min-height: 56px;
+  min-height: 52px;
   letter-spacing: 0.02em;
 }
-.start-btn:hover { background: var(--accent2); }
+.start-btn:hover  { background: var(--accent2); }
 .start-btn:active { transform: scale(0.98); }
 
-/* ---- Main game layout ---- */
+/* ======================================================
+   MAIN GAME — SHARED STRUCTURE
+   ====================================================== */
 
 .main-game {
   display: flex;
@@ -184,26 +182,27 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1rem;
-  padding-top: calc(0.75rem + env(safe-area-inset-top));
+  padding: 0.625rem 1rem;
+  padding-top: calc(0.625rem + env(safe-area-inset-top));
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   z-index: 100;
   gap: 0.75rem;
+  flex-shrink: 0;
 }
 
 .back-link-small {
   color: var(--text-muted);
   text-decoration: none;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   white-space: nowrap;
 }
 .back-link-small:hover { color: var(--text); }
 
 .game-title {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: var(--accent2);
   flex: 1;
@@ -215,52 +214,18 @@ body {
   border: 1px solid var(--border);
   color: var(--text-muted);
   border-radius: var(--radius-sm);
-  font-size: 0.8rem;
-  padding: 0.35rem 0.65rem;
+  font-size: 0.75rem;
+  padding: 0.3rem 0.6rem;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.15s;
 }
 .btn-ghost:hover { border-color: var(--accent); color: var(--text); }
 
-/* ---- Game body ---- */
-
-.game-body {
-  flex: 1;
-  padding: 1rem;
-  padding-bottom: calc(var(--bottom-bar) + 1.5rem + env(safe-area-inset-bottom));
-  display: flex;
-  flex-direction: column;
-  gap: 0.875rem;
-}
-
-/* ---- Top row: Generation + TR ---- */
-
-.top-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-}
-
-.gen-card,
-.tr-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.875rem 1rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.6rem;
-}
-
-.tr-card {
-  border-color: rgba(193, 68, 14, 0.4);
-  background: rgba(193, 68, 14, 0.06);
-}
+/* ---- Common stat card pieces ---- */
 
 .stat-label {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -270,19 +235,19 @@ body {
 .stat-controls {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  width: 100%;
   justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
 }
 
 .stat-btn {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   background: var(--surface2);
   border: 1px solid var(--border);
   color: var(--text);
   border-radius: var(--radius-sm);
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   line-height: 1;
   cursor: pointer;
   display: flex;
@@ -292,91 +257,86 @@ body {
   transition: all 0.1s;
   flex-shrink: 0;
 }
-.stat-btn:hover { border-color: var(--accent); background: var(--surface3); }
-.stat-btn:active { transform: scale(0.92); }
+.stat-btn:hover  { border-color: var(--accent); background: var(--surface3); }
+.stat-btn:active { transform: scale(0.91); }
 
 .stat-value {
-  font-size: 1.75rem;
+  font-size: 1.6rem;
   font-weight: 800;
-  min-width: 42px;
+  min-width: 36px;
   text-align: center;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
-.tr-accent {
-  color: var(--accent2);
-}
+.tr-accent { color: var(--accent2); }
 
-/* ---- Resources grid ---- */
-
-.resources-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-}
+/* ---- Resource pieces ---- */
 
 .resource-card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   border-top: 3px solid var(--res-color, var(--border));
-  padding: 0.875rem 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.45rem;
+  padding: 0.625rem 0.625rem;
 }
 
 .resource-header {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.3rem;
 }
 
 .resource-icon {
-  font-size: 1rem;
+  font-size: 0.9rem;
   line-height: 1;
 }
 
 .resource-name {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
 }
 
-/* Prod and Amount rows */
-
 .res-row {
   display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.3rem;
 }
 
 .res-row-label {
-  font-size: 0.6rem;
+  font-size: 0.58rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.06em;
   color: var(--text-muted);
   opacity: 0.65;
+  flex-shrink: 0;
+  width: 26px;
 }
 
 .res-controls {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.25rem;
+  flex: 1;
+  justify-content: flex-end;
 }
 
 .res-btn {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   background: var(--surface2);
   border: 1px solid var(--border);
   color: var(--text);
-  border-radius: 6px;
-  font-size: 1.1rem;
+  border-radius: 5px;
+  font-size: 1rem;
   line-height: 1;
   cursor: pointer;
   display: flex;
@@ -386,13 +346,13 @@ body {
   transition: all 0.1s;
   flex-shrink: 0;
 }
-.res-btn:hover { border-color: var(--res-color, var(--accent)); background: var(--surface3); }
+.res-btn:hover  { border-color: var(--res-color, var(--accent)); background: var(--surface3); }
 .res-btn:active { transform: scale(0.9); }
 
 .res-val {
-  flex: 1;
+  min-width: 26px;
   text-align: center;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -400,44 +360,198 @@ body {
 .res-val-prod { color: var(--text-muted); }
 .res-val-amt  { color: var(--text); }
 
-/* ---- Bottom action bar ---- */
-
-.bottom-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 0.75rem 1rem;
-  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  z-index: 100;
-}
-
 .end-gen-btn {
   width: 100%;
-  padding: 0.9rem;
   background: var(--accent);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
   transition: background 0.15s;
   letter-spacing: 0.02em;
-  min-height: 50px;
+  padding: 0.75rem 0.5rem;
 }
-.end-gen-btn:hover { background: var(--accent2); }
+.end-gen-btn:hover  { background: var(--accent2); }
 .end-gen-btn:active { transform: scale(0.98); }
 
-/* ---- Landscape adjustments ---- */
 
-@media (orientation: landscape) and (max-height: 500px) {
-  .resources-grid {
-    grid-template-columns: repeat(3, 1fr);
+/* ======================================================
+   PORTRAIT LAYOUT  (default)
+   ====================================================== */
+
+.game-layout {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem;
+  gap: 0.75rem;
+  overflow-y: auto;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+}
+
+/* Stats panel: Gen + TR side-by-side, End Gen full-width below */
+.stats-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.625rem;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 0.625rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tr-card {
+  border-color: rgba(193, 68, 14, 0.4);
+  background: rgba(193, 68, 14, 0.05);
+}
+
+/* End Gen spans both columns in portrait */
+.end-gen-btn {
+  grid-column: 1 / -1;
+  min-height: 48px;
+}
+
+/* Resources: 2 columns, board order L→R top→bottom
+   MC | Steel
+   Ti | Plants
+   En | Heat                                          */
+.resources-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.625rem;
+}
+
+
+/* ======================================================
+   LANDSCAPE LAYOUT  (phone landscape, ≤ 600px tall)
+
+   ┌──────────┬──────────────────────────────────────┐
+   │ header                                           │
+   ├──────────┬──────────────────────────────────────┤
+   │   Gen    │  MC  │ Steel │  Ti  │ Plants │ En │ Heat │
+   │   TR     │      │       │      │        │    │      │
+   │  [EndGen]│      │       │      │        │    │      │
+   └──────────┴──────────────────────────────────────┘
+
+   Resources go 3-wide × 2-tall so the board L→R order
+   (MC → Steel → Ti → Plants → Energy → Heat) is preserved.
+   ====================================================== */
+
+@media (orientation: landscape) and (max-height: 600px) {
+
+  body { overflow: hidden; }
+
+  .main-game {
+    height: 100dvh;
+    overflow: hidden;
   }
-  .top-row {
-    grid-template-columns: repeat(2, 1fr);
+
+  /* Tighter header */
+  .game-header {
+    padding-top: 0.4rem;
+    padding-bottom: 0.4rem;
+    padding-left: calc(0.75rem + env(safe-area-inset-left));
+    padding-right: calc(0.75rem + env(safe-area-inset-right));
+  }
+
+  /* Side-by-side layout */
+  .game-layout {
+    flex-direction: row;
+    overflow: hidden;
+    padding: 0.5rem;
+    padding-left:  calc(0.5rem + env(safe-area-inset-left));
+    padding-right: calc(0.5rem + env(safe-area-inset-right));
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+
+  /* Left sidebar — fixed width */
+  .stats-panel {
+    display: flex;
+    flex-direction: column;
+    width: 108px;
+    flex-shrink: 0;
+    gap: 0.375rem;
+    /* Reset portrait grid */
+    grid-template-columns: unset;
+  }
+
+  .stat-card {
+    padding: 0.375rem 0.5rem;
+    gap: 0.25rem;
+    flex-shrink: 0;
+    border-radius: var(--radius-sm);
+  }
+
+  .stat-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 1.05rem;
+  }
+
+  .stat-value {
+    font-size: 1.35rem;
+    min-width: 30px;
+  }
+
+  /* End Gen fills remaining sidebar height */
+  .end-gen-btn {
+    grid-column: auto;   /* reset the portrait span */
+    flex: 1;
+    min-height: 0;
+    font-size: 0.75rem;
+    padding: 0.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Resources: 3 cols × 2 rows, filling all available space */
+  .resources-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 0.375rem;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  .resource-card {
+    padding: 0.4rem 0.5rem;
+    gap: 0.3rem;
+    border-radius: var(--radius-sm);
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .resource-name { font-size: 0.6rem; }
+  .resource-icon { font-size: 0.8rem; }
+
+  .res-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 0.95rem;
+    border-radius: 4px;
+  }
+
+  .res-val {
+    font-size: 0.88rem;
+    min-width: 22px;
+  }
+
+  .res-row-label {
+    font-size: 0.54rem;
+    width: 22px;
   }
 }

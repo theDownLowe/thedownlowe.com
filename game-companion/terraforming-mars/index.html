@@ -24,7 +24,9 @@
         <p class="setup-subtitle">Enter your name to begin tracking</p>
       </div>
       <div class="setup-field">
-        <label class="setup-label" for="player-name">Your Name <span class="optional">(optional)</span></label>
+        <label class="setup-label" for="player-name">
+          Your Name <span class="optional">(optional)</span>
+        </label>
         <input
           id="player-name"
           class="setup-input"
@@ -45,14 +47,19 @@
     <header class="game-header">
       <a href="../" class="back-link-small">← Companions</a>
       <span class="game-title">Terraforming Mars</span>
-      <button id="new-game-btn" class="btn-ghost" aria-label="New game">↺ New</button>
+      <button id="new-game-btn" class="btn-ghost">↺ New</button>
     </header>
 
-    <div class="game-body">
+    <!--
+      .game-layout:
+        Portrait  → column: [stats-panel] then [resources-grid]
+        Landscape → row:    [stats-panel | resources-grid]
+    -->
+    <div class="game-layout">
 
-      <!-- TR + Generation row -->
-      <div class="top-row">
-        <div class="gen-card">
+      <!-- Stats: Generation, TR, End Generation -->
+      <div class="stats-panel">
+        <div class="stat-card gen-card">
           <span class="stat-label">Generation</span>
           <div class="stat-controls">
             <button class="stat-btn" onclick="adjustGeneration(-1)">−</button>
@@ -60,7 +67,8 @@
             <button class="stat-btn" onclick="adjustGeneration(1)">+</button>
           </div>
         </div>
-        <div class="tr-card">
+
+        <div class="stat-card tr-card">
           <span class="stat-label">TR</span>
           <div class="stat-controls">
             <button class="stat-btn" onclick="adjustTR(-1)">−</button>
@@ -68,18 +76,14 @@
             <button class="stat-btn" onclick="adjustTR(1)">+</button>
           </div>
         </div>
+
+        <button id="end-gen-btn" class="end-gen-btn">End Generation</button>
       </div>
 
-      <!-- Resources grid -->
+      <!-- Resources: MC → Steel → Titanium → Plants → Energy → Heat -->
       <div id="resources-grid" class="resources-grid"></div>
 
     </div>
-
-    <!-- Sticky bottom action bar -->
-    <div class="bottom-bar">
-      <button id="end-gen-btn" class="end-gen-btn">End Generation</button>
-    </div>
-
   </div>
 
   <div id="toast" class="toast hidden"></div>
