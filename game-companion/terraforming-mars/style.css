@@ -382,35 +382,24 @@ body {
   opacity: 0.65;
 }
 
-/* Production panel — brown mesh, matching the TM player board */
-.prod-panel {
+/* Brown mesh box wrapping only the production value */
+.prod-val-box {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
   display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 0.35rem 0.4rem;
-  border-radius: var(--radius-sm);
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
   border: 1px solid #7a4820;
   background-color: #3d2008;
   background-image:
-    linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px);
+    linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);
   background-size: 7px 7px;
 }
 
-/* Buttons and value inside the prod panel */
-.prod-panel .res-section-label {
-  color: #c49a6a;
-  opacity: 1;
-}
-.prod-panel .res-btn {
-  background: rgba(0, 0, 0, 0.35);
-  border-color: rgba(255, 200, 130, 0.2);
-}
-.prod-panel .res-btn:hover {
-  background: rgba(0, 0, 0, 0.5);
-  border-color: var(--res-color, #c49a6a);
-}
-.prod-panel .res-val-prod {
+.prod-val-box .res-val-prod {
   color: #e0b882;
 }
 
@@ -540,7 +529,7 @@ body {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s;
-  min-height: 44px;
+  min-height: 88px;
 }
 .undo-btn:hover { border-color: var(--accent); color: var(--text); }
 .undo-btn:active { transform: scale(0.97); }

@@ -143,12 +143,12 @@ function renderResources() {
           <span class="resource-icon">${r.icon}</span>
           <span class="resource-name">${r.label}</span>
         </div>
-        <div class="prod-panel">
+        <div class="res-section">
           <span class="res-section-label">Production</span>
           <div class="res-controls">
             <button class="res-btn res-sm" onclick="adjustResource('${r.id}','production',-5)">−5</button>
             <button class="res-btn"        onclick="adjustResource('${r.id}','production',-1)">−</button>
-            <span class="res-val res-val-prod">${res.production}</span>
+            <span class="prod-val-box"><span class="res-val res-val-prod">${res.production}</span></span>
             <button class="res-btn"        onclick="adjustResource('${r.id}','production',1)">+</button>
             <button class="res-btn res-sm" onclick="adjustResource('${r.id}','production',5)">+5</button>
           </div>
