@@ -128,14 +128,16 @@ function renderDropdown(results) {
   const dd = document.getElementById("dropdown");
   if (!results.length) { dd.innerHTML = '<div class="dropdown-searching">No results found</div>'; return; }
   dd.innerHTML = results.slice(0, 6).map(r => `
-    <div class="dropdown-item" onclick="selectMovie('${r.imdbID}','${escHtml(r.Title)}')">
+    <div class="dropdown-item" data-imdb="${escHtml(r.imdbID)}" data-title="${escHtml(r.Title)}" onclick="selectMovie(this)">
       <img src="${r.Poster !== "N/A" ? r.Poster : ""}" alt="" onerror="this.style.display='none'" />
-      <div class="di-info"><div class="di-title">${escHtml(r.Title)}</div><div class="di-year">${r.Year}</div></div>
+      <div class="di-info"><div class="di-title">${escHtml(r.Title)}</div><div class="di-year">${escHtml(r.Year)}</div></div>
     </div>`).join("");
   dd.classList.add("open");
 }
 function closeDropdown() { const dd = document.getElementById("dropdown"); dd.classList.remove("open"); dd.innerHTML = ""; }
-async function selectMovie(imdbId, title) {
+async function selectMovie(el) {
+  const imdbId = el.dataset.imdb;
+  const title = el.dataset.title;
   closeDropdown();
   document.getElementById("movieInput").value = title;
   const preview = document.getElementById("preview");
