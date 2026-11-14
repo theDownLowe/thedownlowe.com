@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>GTNH Server</title>
+<style>
+  :root {
+    --bg: #0f1216; --panel: #181d24; --line: #262d37; --text: #e6e9ee; --muted: #8b95a5;
+    --green: #3fb950; --amber: #d29922; --red: #f85149; --blue: #58a6ff;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 24px; font-size: .9rem; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+          padding: 20px; margin-bottom: 16px; }
+  .card h2 { font-size: .8rem; letter-spacing: .08em; text-transform: uppercase;
+             color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+  .status { display: flex; align-items: center; gap: 12px; font-size: 1.25rem; font-weight: 600; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--muted); flex: none; }
+  .dot.online { background: var(--green); box-shadow: 0 0 10px var(--green); }
+  .dot.busy { background: var(--amber); animation: pulse 1.2s infinite; }
+  .dot.offline { background: var(--red); }
+  @keyframes pulse { 50% { opacity: .35; } }
+  .detail { color: var(--muted); font-size: .9rem; margin-top: 6px; min-height: 1.4em; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  code.addr { background: #0b0e12; border: 1px solid var(--line); padding: 6px 10px; border-radius: 8px; }
+  button { font: inherit; border: 1px solid var(--line); background: #222a34; color: var(--text);
+           padding: 8px 14px; border-radius: 8px; cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--blue); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.start { background: #1f6f33; border-color: #2a8a42; }
+  button.stop { background: #7a2a26; border-color: #a03b36; }
+  input[type=number], input[type=password] { font: inherit; background: #0b0e12; color: var(--text);
+           border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  input[type=number] { width: 110px; }
+  input[type=password] { flex: 1; min-width: 180px; }
+  ul.players { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  ul.players li { background: #0b0e12; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; }
+  .count { font-size: 2rem; font-weight: 700; }
+  .count small { font-size: 1rem; color: var(--muted); font-weight: 400; }
+  .msg { min-height: 1.4em; margin-top: 10px; font-size: .9rem; color: var(--muted); }
+  .msg.err { color: var(--red); } .msg.ok { color: var(--green); }
+  .hint { color: var(--muted); font-size: .85rem; margin-top: 8px; }
+  footer { color: var(--muted); font-size: .8rem; text-align: center; margin-top: 24px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>GT: New Horizons</h1>
+  <p class="sub">Server controller &middot; <span id="updated">connecting&hellip;</span></p>
+
+  <section class="card">
+    <h2>Status</h2>
+    <div class="status"><span class="dot" id="dot"></span><span id="state">Checking&hellip;</span></div>
+    <div class="detail" id="detail"></div>
+    <div class="row" style="margin-top:16px">
+      <code class="addr" id="addr">&mdash;</code>
+      <button id="copy" type="button">Copy</button>
+    </div>
+    <div class="row" style="margin-top:16px">
+      <button id="btnStart" class="start" type="button" disabled>Start server</button>
+      <button id="btnStop" class="stop" type="button" disabled>Stop server</button>
+    </div>
+    <div class="msg" id="actionMsg" role="status"></div>
+  </section>
+
+  <section class="card">
+    <h2>Players online</h2>
+    <div class="count" id="count">&mdash;</div>
+    <ul class="players" id="players"></ul>
+    <div class="hint">The server stops itself automatically once nobody has been online for a while.</div>
+  </section>
+
+  <section class="card">
+    <h2>AFK kick</h2>
+    <div class="row">
+      <label for="afk">Kick players idle for</label>
+      <input type="number" id="afk" min="0" max="1440" step="1" disabled>
+      <span>minutes</span>
+      <button id="btnAfk" type="button" disabled>Save</button>
+    </div>
+    <div class="hint">0 turns the AFK kick off. &ldquo;Idle&rdquo; means no movement, clicks or chat. Applies to the running server within about a minute.</div>
+    <div class="msg" id="afkMsg" role="status"></div>
+  </section>
+
+  <section class="card" id="authCard">
+    <h2>Controls</h2>
+    <div class="row" id="lockedRow">
+      <input type="password" id="key" placeholder="Admin key" autocomplete="current-password">
+      <button id="btnUnlock" type="button">Unlock</button>
+    </div>
+    <div class="row" id="unlockedRow" hidden>
+      <span id="unlockedLabel">Controls unlocked on this device.</span>
+      <button id="btnLock" type="button">Lock</button>
+    </div>
+    <div class="msg" id="authMsg" role="status"></div>
+  </section>
+
+  <footer>Status refreshes every 10 seconds while this tab is open.</footer>
+</main>
+
+<script>
+"use strict";
+const API = "https://nzasjzruos2pzdfjgidabxvrdm0yucll.lambda-url.us-west-2.on.aws".replace(/\/+$/, "");   // filled in by deploy.ps1
+const POLL_MS = 10000;
+const KEY_STORE = "gtnh-admin-key";
+
+const $ = (id) => document.getElementById(id);
+let adminKey = localStorage.getItem(KEY_STORE) || "";
+let timer = null;
+let busy = false;           // a poll is in flight
+let acting = false;         // a start/stop/save is in flight
+let afkDirty = false;       // user is editing the AFK field; don't clobber it
+let last = null;
+
+async function api(path, { method = "GET", body } = {}) {
+  const headers = {};
+  if (adminKey) headers["x-admin-key"] = adminKey;
+  if (body) headers["content-type"] = "application/json";
+  const res = await fetch(API + path, {
+    method, headers, cache: "no-store",
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(data.message || res.statusText);
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}
+
+function setMsg(el, text, kind) {
+  el.textContent = text || "";
+  el.className = "msg" + (kind ? " " + kind : "");
+}
+
+function uptime(iso) {
+  if (!iso) return "";
+  const mins = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+  const h = Math.floor(mins / 60), m = mins % 60;
+  return h ? `${h}h ${m}m` : `${m}m`;
+}
+
+function phase(s) {
+  switch (s.state) {
+    case "stopped":  return { dot: "offline", label: "Offline", detail: "The server is stopped. Start it to play." };
+    case "stopping": return { dot: "busy", label: "Stopping\u2026", detail: "Saving the world and shutting down." };
+    case "pending":  return { dot: "busy", label: "Starting\u2026", detail: "Booting the machine." };
+    case "running":
+      if (s.server && s.server.up) {
+        const v = s.server.version ? ` \u00b7 ${s.server.version}` : "";
+        return { dot: "online", label: "Online", detail: `Up ${uptime(s.launchTime)}${v}` };
+      }
+      return { dot: "busy", label: "Starting\u2026",
+               detail: "Machine is up, the modpack is loading (usually 3\u20136 minutes)." };
+    default:         return { dot: "busy", label: s.state, detail: "" };
+  }
+}
+
+function render(s) {
+  last = s;
+  const p = phase(s);
+  $("dot").className = "dot " + p.dot;
+  $("state").textContent = p.label;
+  $("detail").textContent = p.detail;
+  $("addr").textContent = s.address || "\u2014";
+
+  const players = s.server && s.server.players;
+  const list = $("players");
+  list.replaceChildren();
+  if (players) {
+    const c = $("count");
+    c.textContent = players.online;
+    const small = document.createElement("small");
+    small.textContent = ` / ${players.max}`;
+    c.appendChild(small);
+    players.names.forEach((n) => {
+      const li = document.createElement("li");
+      li.textContent = n;
+      list.appendChild(li);
+    });
+    const hidden = players.online - players.names.length;
+    if (hidden > 0) {
+      const li = document.createElement("li");
+      li.textContent = `+${hidden} more`;
+      list.appendChild(li);
+    }
+  } else {
+    $("count").textContent = s.state === "running" ? "\u2026" : "0";
+  }
+
+  if (!afkDirty && document.activeElement !== $("afk")) $("afk").value = s.afkTimeoutMinutes;
+
+  const authed = !!s.authorized;
+  $("lockedRow").hidden = authed;
+  $("unlockedRow").hidden = !authed;
+  if (adminKey && !authed) setMsg($("authMsg"), "That key was not accepted.", "err");
+  else if (authed) setMsg($("authMsg"), "");
+  $("afk").disabled = !authed;
+  $("btnAfk").disabled = !authed || acting;
+  $("btnStart").disabled = !authed || acting || s.state !== "stopped";
+  $("btnStop").disabled = !authed || acting || !["running", "pending"].includes(s.state);
+  $("updated").textContent = "updated " + new Date().toLocaleTimeString();
+}
+
+async function poll() {
+  if (busy) return;
+  busy = true;
+  try {
+    render(await api("/status"));
+  } catch (e) {
+    $("updated").textContent = "can't reach the controller (" + e.message + ")";
+  } finally {
+    busy = false;
+  }
+}
+
+function schedule() {
+  clearInterval(timer);
+  timer = setInterval(() => { if (!document.hidden) poll(); }, POLL_MS);
+}
+
+async function act(path, body, msgEl, okText) {
+  acting = true;
+  if (last) render(last);
+  setMsg(msgEl, "Working\u2026");
+  try {
+    const r = await api(path, { method: "POST", body });
+    setMsg(msgEl, okText || r.message, "ok");
+  } catch (e) {
+    if (e.status === 401) {
+      adminKey = "";
+      localStorage.removeItem(KEY_STORE);
+      setMsg(msgEl, "Key rejected - unlock again.", "err");
+    } else {
+      setMsg(msgEl, e.message, "err");
+    }
+  } finally {
+    acting = false;
+    await poll();
+  }
+}
+
+$("btnStart").onclick = () => act("/start", null, $("actionMsg"), "Starting - this takes a few minutes.");
+$("btnStop").onclick = () => {
+  const n = last && last.server && last.server.players ? last.server.players.online : 0;
+  const warn = n > 0 ? `${n} player(s) are online and will be disconnected. ` : "";
+  if (confirm(warn + "Stop the server? The world is saved first.")) {
+    act("/stop", null, $("actionMsg"), "Stopping - saving the world first.");
+  }
+};
+$("btnAfk").onclick = async () => {
+  const v = Number($("afk").value);
+  if (!Number.isInteger(v) || v < 0 || v > 1440) {
+    setMsg($("afkMsg"), "Enter a whole number from 0 to 1440.", "err");
+    return;
+  }
+  await act("/config", { afkTimeoutMinutes: v }, $("afkMsg"), v === 0 ? "AFK kick disabled." : `Saved: ${v} min.`);
+  afkDirty = false;
+};
+$("afk").oninput = () => { afkDirty = true; };
+$("copy").onclick = async () => {
+  try { await navigator.clipboard.writeText($("addr").textContent); $("copy").textContent = "Copied"; }
+  catch { $("copy").textContent = "Press Ctrl+C"; }
+  setTimeout(() => ($("copy").textContent = "Copy"), 1500);
+};
+$("btnUnlock").onclick = async () => {
+  adminKey = $("key").value.trim();
+  if (!adminKey) return;
+  localStorage.setItem(KEY_STORE, adminKey);
+  $("key").value = "";
+  await poll();
+  if (!last || !last.authorized) localStorage.removeItem(KEY_STORE);
+};
+$("key").onkeydown = (e) => { if (e.key === "Enter") $("btnUnlock").click(); };
+$("btnLock").onclick = () => {
+  adminKey = "";
+  localStorage.removeItem(KEY_STORE);
+  poll();
+};
+document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
+
+poll();
+schedule();
+</script>
+</body>
+</html>
