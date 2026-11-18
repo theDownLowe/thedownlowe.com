@@ -46,6 +46,9 @@
   .msg { min-height: 1.4em; margin-top: 10px; font-size: .9rem; color: var(--muted); }
   .msg.err { color: var(--red); } .msg.ok { color: var(--green); }
   .hint { color: var(--muted); font-size: .85rem; margin-top: 8px; }
+  .start-how { margin: 16px 0 0; }
+  code.cmd { color: var(--text); background: #0b0e12; border: 1px solid var(--line);
+             padding: 1px 6px; border-radius: 6px; font-size: .92em; }
   footer { color: var(--muted); font-size: .8rem; text-align: center; margin-top: 24px; }
   [hidden] { display: none !important; }
 </style>
@@ -63,7 +66,8 @@
       <code class="addr" id="addr">&mdash;</code>
       <button id="copy" type="button">Copy</button>
     </div>
-    <div class="row" style="margin-top:16px">
+    <p class="start-how" id="discordHint">When the server is offline, run <code class="cmd">/start-minecraft</code> in the Discord server laylee&rsquo;s lounge on the Ollie app.</p>
+    <div class="row" id="adminActions" style="margin-top:16px" hidden>
       <button id="btnStart" class="start" type="button" disabled>Start server</button>
       <button id="btnStop" class="stop" type="button" disabled>Stop server</button>
     </div>
@@ -77,7 +81,7 @@
     <div class="hint">The server stops itself automatically once nobody has been online for a while.</div>
   </section>
 
-  <section class="card">
+  <section class="card" id="afkCard" hidden>
     <h2>AFK kick</h2>
     <div class="row">
       <label for="afk">Kick players idle for</label>
@@ -107,7 +111,7 @@
 
 <script>
 "use strict";
-const API = "https://nzasjzruos2pzdfjgidabxvrdm0yucll.lambda-url.us-west-2.on.aws".replace(/\/+$/, "");   // filled in by deploy.ps1
+const API = "https://nzasjzruos2pzdfjgidabxvrdm0yucll.lambda-url.us-west-2.on.aws/".replace(/\/+$/, "");   // filled in by deploy.ps1
 const POLL_MS = 10000;
 const KEY_STORE = "gtnh-admin-key";
 
@@ -148,9 +152,11 @@ function uptime(iso) {
   return h ? `${h}h ${m}m` : `${m}m`;
 }
 
-function phase(s) {
+function phase(s, authed) {
   switch (s.state) {
-    case "stopped":  return { dot: "offline", label: "Offline", detail: "The server is stopped. Start it to play." };
+    case "stopped":  return { dot: "offline", label: "Offline",
+                              detail: authed ? "The server is stopped. Start it to play."
+                                             : "The server is stopped." };
     case "stopping": return { dot: "busy", label: "Stopping\u2026", detail: "Saving the world and shutting down." };
     case "pending":  return { dot: "busy", label: "Starting\u2026", detail: "Booting the machine." };
     case "running":
@@ -166,7 +172,8 @@ function phase(s) {
 
 function render(s) {
   last = s;
-  const p = phase(s);
+  const authed = !!s.authorized;
+  const p = phase(s, authed);
   $("dot").className = "dot " + p.dot;
   $("state").textContent = p.label;
   $("detail").textContent = p.detail;
@@ -181,7 +188,7 @@ function render(s) {
     const small = document.createElement("small");
     small.textContent = ` / ${players.max}`;
     c.appendChild(small);
-    players.names.forEach((n) => {
+    players.names.slice().sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" })).forEach((n) => {
       const li = document.createElement("li");
       li.textContent = n;
       list.appendChild(li);
@@ -198,7 +205,8 @@ function render(s) {
 
   if (!afkDirty && document.activeElement !== $("afk")) $("afk").value = s.afkTimeoutMinutes;
 
-  const authed = !!s.authorized;
+  $("adminActions").hidden = !authed;
+  $("afkCard").hidden = !authed;
   $("lockedRow").hidden = authed;
   $("unlockedRow").hidden = !authed;
   if (adminKey && !authed) setMsg($("authMsg"), "That key was not accepted.", "err");
