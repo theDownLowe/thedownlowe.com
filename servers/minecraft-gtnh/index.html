@@ -46,9 +46,6 @@
   .msg { min-height: 1.4em; margin-top: 10px; font-size: .9rem; color: var(--muted); }
   .msg.err { color: var(--red); } .msg.ok { color: var(--green); }
   .hint { color: var(--muted); font-size: .85rem; margin-top: 8px; }
-  .start-how { margin: 16px 0 0; }
-  code.cmd { color: var(--text); background: #0b0e12; border: 1px solid var(--line);
-             padding: 1px 6px; border-radius: 6px; font-size: .92em; }
   footer { color: var(--muted); font-size: .8rem; text-align: center; margin-top: 24px; }
   [hidden] { display: none !important; }
 </style>
@@ -66,7 +63,6 @@
       <code class="addr" id="addr">&mdash;</code>
       <button id="copy" type="button">Copy</button>
     </div>
-    <p class="start-how" id="discordHint">When the server is offline, run <code class="cmd">/start-minecraft</code> in the Discord server laylee&rsquo;s lounge on the Ollie app.</p>
     <div class="row" id="adminActions" style="margin-top:16px" hidden>
       <button id="btnStart" class="start" type="button" disabled>Start server</button>
       <button id="btnStop" class="stop" type="button" disabled>Stop server</button>
